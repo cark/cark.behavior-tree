@@ -1,0 +1,8 @@
+#+STARTUP: hidestars indent content
+* TODO behavior tree
+** DONE add always-success and always-failure
+** DONE on-cancel
+** TODO state machine
+** TODO lexical-context
+** TODO Manual
+*** TODO remember to talk about on-cancel

@@ -1,0 +1,1 @@
+clojure -A:all-tests %*

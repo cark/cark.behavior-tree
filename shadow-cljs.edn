@@ -1,0 +1,13 @@
+;; shadow-cljs configuration
+{:deps {:aliases [:dev]}
+ :builds
+ {:test    {:target           :browser-test
+            :test-dir         "resources/public/test"
+            :ns-regexp        "-test$"
+            :compiler-options {:static-fns false ; required for mocking to work
+                               }
+            :devtools         {:http-port          8022
+                               :http-resource-root "public"
+                               :http-root          "resources/public/test"
+                               :preloads [punk.adapter.web.preload]
+                               :loader-mode :eval}}}}

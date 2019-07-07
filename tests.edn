@@ -1,0 +1,60 @@
+#kaocha/v1
+{:tests [{;; Every suite must have an :id
+          :id :clj
+
+          ;; Directories containing files under test. This is used to
+          ;; watch for changes, and when doing code coverage analysis
+          ;; through Cloverage. These directories are *not* automatically
+          ;; added to the classpath.
+          :source-paths ["src/main"]
+
+          ;; Directories containing tests. These will automatically be
+          ;; added to the classpath when running this suite.
+          :test-paths ["src/test"]
+
+          ;; Regex strings to determine whether a namespace contains
+          ;; tests. (use strings, not actual regexes, due to a limitation of Aero)
+          :ns-patterns ["-test$"]}
+         {;; Every suite must have an :id
+          :id :cljs
+          :type :kaocha.type/cljs
+          :compiler {:optimizations :advanced}
+          ;; Directories containing files under test. This is used to
+          ;; watch for changes, and when doing code coverage analysis
+          ;; through Cloverage. These directories are *not* automatically
+          ;; added to the classpath.
+          :source-paths ["src/main"]
+
+          ;; Directories containing tests. These will automatically be
+          ;; added to the classpath when running this suite.
+          :test-paths ["src/test"]
+
+          ;; Regex strings to determine whether a namespace contains
+          ;; tests. (use strings, not actual regexes, due to a limitation of Aero)
+          :ns-patterns ["-test$"]}]
+
+ :plugins [:kaocha.plugin/print-invocations
+           :kaocha.plugin/profiling]
+
+ ;; Colorize output (use ANSI escape sequences).
+ :color?      true
+
+ ;; Watch the file system for changes and re-run. You can change this here to be
+ ;; on by default, then disable it when necessary with `--no-watch`.
+ :watch?      true
+
+ ;; Specifiy the reporter function that generates output. Must be a namespaced
+ ;; symbol, or a vector of symbols. The symbols must refer to vars, which Kaocha
+ ;; will make sure are loaded. When providing a vector of symbols, or pointing
+ ;; at a var containing a vector, then kaocha will call all referenced functions
+ ;; for reporting.
+ :reporter  kaocha.report/documentation
+ ;; :reporter  kaocha.report/dots
+ ;; :reporter  kaocha.report.progress/progress
+
+ ;; Enable/disable output capturing.
+ :capture-output? true
+
+ ;; Plugin specific configuration. Show the 10 slowest tests of each type, rather
+ ;; than only 3.
+ :kaocha.plugin.profiling/count 10}
