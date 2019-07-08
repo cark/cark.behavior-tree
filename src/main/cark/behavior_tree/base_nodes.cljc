@@ -12,22 +12,31 @@
     params-spec
     (s/? ::hs/params)))
 
+(defn children-spec [type]
+  (if-let [children-spec (type/get-children-spec type)]
+    children-spec
+    (s/* ::hs/child)))
 
 (defn leaf [type]
   (merge {::type/node-spec (s/cat :tag ::hs/tag
-                                  :params (params-spec type))}
+                                  :params (params-spec type))
+          ::type/children-spec nil?}
          type))
 
 (defn decorator [type]
   (merge {::type/node-spec (s/cat :tag ::hs/tag
                                   :params (params-spec type)
-                                  :children (s/& (s/+ ::hs/child)
-                                                 #(= (count %) 1)))}
+                                  :children (children-spec
+                                             (merge {::type/children-spec (s/& (s/+ ::hs/child)
+                                                                               #(= (count %) 1))}
+                                                    type)))}
          type))
 
 (defn branch [type]
   (merge {::type/node-spec (s/cat :tag ::hs/tag
                                   :params (params-spec type)
-                                  :children (s/+ ::hs/child))}
+                                  :children (children-spec
+                                             (merge {::type/children-spec (s/+ ::hs/child)}
+                                                    type)))}
          type))
 

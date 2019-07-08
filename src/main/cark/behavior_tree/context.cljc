@@ -2,6 +2,7 @@
   (:refer-clojure :exclude [keys])
   (:require [cark.behavior-tree.db :as db]
             [cark.behavior-tree.tree :as tree]
+            [cark.behavior-tree.lexical-context :as lc]
             [clojure.set :as set]))
 
 (def default-max-tick-count 100000)
@@ -10,13 +11,13 @@
   #{::max-tick-count ::tick-count ::time})
 
 (def keys
-  (set/union specific-keys db/keys tree/keys))
+  (set/union specific-keys db/keys tree/keys lc/keys))
 
 (defn make [db tree]
   (merge {::max-tick-count default-max-tick-count
           ::tick-count 0
           ::time 0}
-         db tree))
+         db tree (lc/make)))
 
 (def base (make (db/make) (tree/make)))
 

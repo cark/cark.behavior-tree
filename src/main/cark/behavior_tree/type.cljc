@@ -1,7 +1,7 @@
 (ns cark.behavior-tree.type
   (:refer-clojure :exclude [keys]))
 
-(def keys #{::tag ::compile-func ::node-spec ::params-spec})
+(def keys #{::tag ::compile-func ::node-spec ::params-spec ::children-spec})
 
 (defonce types (atom {}))
 
@@ -23,3 +23,6 @@
 
 (defn get-params-spec [type]
   (::params-spec type))
+
+(defn get-children-spec [type]
+  (::children-spec type))

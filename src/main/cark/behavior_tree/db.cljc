@@ -1,7 +1,6 @@
 (ns cark.behavior-tree.db
   (:refer-clojure :exclude [keys])
-  (:require #_[cark.behavior-tree.event :as event]
-            #_[cark.behavior-tree.lexical-context :as lc]
+  (:require [cark.behavior-tree.event :as event]
             [clojure.set :as set]))
 
 
@@ -9,16 +8,14 @@
   #{::node-status ::node-data ::blackboard ::timer-start-times})
 
 (def keys
-  (set/union specific-keys #_event/keys #_lc/keys))
+  (set/union specific-keys event/keys))
 
 (def base-db
   (merge {::node-status {}
           ::node-data {}
           ::blackboard {}
           ::timer-start-times {}}
-         ;;(event/make)
-         ;;(lc/make)
-         ))
+         (event/make)))
 
 (defn make []
   base-db)
