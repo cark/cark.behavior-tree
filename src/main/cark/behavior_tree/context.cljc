@@ -75,4 +75,6 @@
 
 (defn cancel [ctx node-id]
   ;; TODO: tick cancel node ...cancelling should remove node data as well
-  (reset-nodes ctx (call-node ctx node-id :get-children-ids nil)))
+  #_(reset-nodes ctx (call-node ctx node-id :get-children-ids nil))
+  (-> (db/set-node-data ctx node-id nil)
+      (reset-nodes (call-node ctx node-id :get-children-ids nil))))

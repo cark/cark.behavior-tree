@@ -2,6 +2,7 @@
   (:require [clojure.test :as t :refer [deftest is]]
             [cark.behavior-tree.core :as bt]
             [cark.behavior-tree.context :as ctx]
+            [cark.behavior-tree.db :as db]
             [cark.behavior-tree.tree :as tree]))
 
 (defn log [value]
@@ -84,3 +85,13 @@
     (is (= :running (-> ctx bt/tick bt/tick bt/get-status)))
     (is (= :success (-> ctx bt/tick bt/tick bt/tick bt/get-status))))
   (is (= :success (-> [:tick-eater {:count (constantly 0)}] bt/hiccup->context bt/tick bt/get-status))))
+
+(deftest tick-eater-cancel-test
+  (is (= 1 (let [ctx (-> [:tick-eater {:count 2}]
+                         bt/hiccup->context bt/tick)]
+             (db/get-node-data ctx (tree/get-root-node-id ctx)))))
+  (is (= nil (let [ctx (-> [:tick-eater {:count 2}]
+                           bt/hiccup->context bt/tick)
+                   id (tree/get-root-node-id ctx)
+                   ctx (ctx/set-node-status ctx id :fresh)]
+               (db/get-node-data ctx id)))))
