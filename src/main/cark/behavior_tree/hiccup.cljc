@@ -5,12 +5,33 @@
             [cark.behavior-tree.type :as type]
             [cark.behavior-tree.hiccup.spec :as hs]))
 
+(defn prepare [hiccup]
+  (let [prepare (fn prepare [hiccup]
+                  (let [[tag & rest-forms] hiccup
+                        splice-in (fn [target children]
+                                    (reduce (fn [result child]
+                                              (let [[first & rest :as child] (prepare child)]
+                                                (if (= :<> first)
+                                                  (into result rest)
+                                                  (conj result child))))
+                                            target children))]
+                    (if (fn? tag)
+                      (prepare (apply tag rest-forms))                      
+                      (if (map? (first rest-forms))
+                        (splice-in [tag (first rest-forms)] (rest rest-forms))
+                        (splice-in [tag] rest-forms)))))
+        result (prepare hiccup)]
+    (if (= :<> (first result))
+      (throw (ex-info "Cannot have a splice tag at the root" {}))
+      result)))
+
 (defn parse
   "Parses an hiccup behavior tree, returning the parse tree"
   ([hiccup]
    (parse hiccup ::hs/node))
-  ([hiccup spec]
-   (let [parsed (s/conform spec hiccup)]
+  ([hiccup spec]   
+   (let [hiccup (prepare hiccup)
+         parsed (s/conform spec hiccup)]
      (if (= ::s/invalid parsed)
        (throw (ex-info (str "Failed to parse hiccup tree.\n"
                             (expound/expound-str spec hiccup))
@@ -23,33 +44,19 @@
 (defn parsed-children->tree [children tree]
   (reduce (fn [[ids tree] parsed-node]
             (let [[id tree] (parsed->node parsed-node tree)]
-              (if (seqable? id)
-                [(into ids id) tree]
-                [(conj ids id) tree])))
+              [(conj ids id) tree]))
           [[] tree] children))
 
-(defn do-node [parsed tree]
+(defn parsed->node [parsed tree]
   (let [{:keys [tag params children]} parsed
-        [tag-type tag-value]  tag]
-    (case tag-type
-      :type (let [[children-ids tree] (parsed-children->tree children tree)
-                  type (type/get-type tag-value)
-                  [id tree] (tree/get-next-id tree)
-                  [node tree] ((type/get-compile-func type) tree id tag-value params children-ids)
-                  tree (tree/set-node-meta tree id {:children-ids children-ids
-                                                    :tag tag-value
-                                                    :params params})]
-              [id (tree/set-node tree id node)])
-      :splice (parsed-children->tree children tree))))
-
-(defn do-func-call [func params tree]
-  (parsed->node (parse (apply func params)) 
-                tree))
-
-(defn parsed->node [[type parsed] tree]
-  (case type
-    :node (do-node parsed tree)
-    :func-call (do-func-call (:func parsed) (:params parsed) tree)))
+        [children-ids tree] (parsed-children->tree children tree)
+        type (type/get-type tag)
+        [id tree] (tree/get-next-id tree)
+        [node tree] ((type/get-compile-func type) tree id tag params children-ids)
+        tree (tree/set-node-meta tree id {:children-ids children-ids
+                                          :tag tag
+                                          :params params})]
+    [id (tree/set-node tree id node)]))
 
 (defn parsed->tree [tree parsed]
   (let [[id tree] (parsed->node parsed tree)]

@@ -60,8 +60,8 @@
 
 (defn crossroad []
   (-> [:parallel
-       (make-traffic-light :we 60000)
-       (make-traffic-light :ns 0)]
+       [make-traffic-light :we 60000] ;;using the hiccup function call syntax here
+       [make-traffic-light :ns 0]]
       bt/hiccup->context (bt/tick 0) (bt/tick+ 60000)))
 
 (deftest crossroad-test
@@ -75,6 +75,7 @@
     (is (= [:red :green] (-> (crossroad) (bt/tick+ 60000) report)))
     (is (= [:red :yellow] (-> (crossroad) (bt/tick+ 110000) report)))
     (is (= [:green :red] (-> (crossroad) (bt/tick+ 120000) report)))
-    ;; 30ms on my computer (jvm), I'll call it good enough
-    (is (= [:green :red] (time (-> (crossroad) (bt/tick+ (* 1000 60 60 24)) report)))))) 
+    ;; 25-30ms on my computer (jvm), I'll call it good enough
+    (let [crossroad (crossroad)]
+      (is (= [:green :red] (time (-> crossroad (bt/tick+ (* 1000 60 60 24)) report))))))) 
 
