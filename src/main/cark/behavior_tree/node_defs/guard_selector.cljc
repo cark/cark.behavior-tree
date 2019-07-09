@@ -12,6 +12,11 @@
   value)
 
 (defn compile-node [tree id tag params children-ids]
+  (when (> (->> (map #(:tag (tree/get-node-meta tree %)) children-ids)
+                (filter #(not= :guard %))
+                count)
+           0)
+    (throw (ex-info "guard-selector may only contain guard nodes." {})))
   (let [[predicate-ids payload-ids] (apply mapv vector (map #(ctx/get-node-children-ids tree %) children-ids))]
     [(fn guard-selector-tick [ctx arg]
        (case (db/get-node-status ctx id)
@@ -53,7 +58,6 @@
   (type/register
    (bn/branch
     {::type/tag :guard-selector
-     ::type/children-spec (s/+ (s/and ::hs/child
-                                      #(= :guard (:tag %))))
+     ::type/children-spec (s/+ ::hs/child)
      ::type/compile-func compile-node})))
 

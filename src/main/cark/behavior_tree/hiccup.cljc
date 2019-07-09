@@ -23,20 +23,38 @@
 (defn parsed-children->tree [children tree]
   (reduce (fn [[ids tree] parsed-node]
             (let [[id tree] (parsed->node parsed-node tree)]
-              [(conj ids id) tree]))
+              (if (seqable? id)
+                [(into ids id) tree]
+                [(conj ids id) tree])))
           [[] tree] children))
 
-(defn parsed->node [parsed tree]
+(defn do-node [parsed tree]
   (let [{:keys [tag params children]} parsed
-        [children-ids tree] (parsed-children->tree children tree)
-        type (type/get-type tag)
-        [id tree] (tree/get-next-id tree)
-        [node tree] ((type/get-compile-func type) tree id tag params children-ids)
-        tree (tree/set-node-meta tree id {:children-ids children-ids
-                                          :tag tag
-                                          :params params})]
-    [id (tree/set-node tree id node)]))
+        [tag-type tag-value]  tag]
+    (case tag-type
+      :type (let [[children-ids tree] (parsed-children->tree children tree)
+                  type (type/get-type tag-value)
+                  [id tree] (tree/get-next-id tree)
+                  [node tree] ((type/get-compile-func type) tree id tag-value params children-ids)
+                  tree (tree/set-node-meta tree id {:children-ids children-ids
+                                                    :tag tag-value
+                                                    :params params})]
+              [id (tree/set-node tree id node)])
+      :splice (parsed-children->tree children tree))))
+
+(defn do-func-call [func params tree]
+  (parsed->node (parse (apply func params)) 
+                tree))
+
+(defn parsed->node [[type parsed] tree]
+  (case type
+    :node (do-node parsed tree)
+    :func-call (do-func-call (:func parsed) (:params parsed) tree)))
 
 (defn parsed->tree [tree parsed]
   (let [[id tree] (parsed->node parsed tree)]
     (tree/set-root-node-id tree id)))
+
+
+
+

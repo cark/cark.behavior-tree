@@ -3,7 +3,8 @@
             [cark.behavior-tree.core :as bt]
             [cark.behavior-tree.context :as ctx]
             [cark.behavior-tree.db :as db]
-            [cark.behavior-tree.tree :as tree]))
+            [cark.behavior-tree.tree :as tree]
+            [cark.behavior-tree.hiccup :as hiccup]))
 
 (defn log [value]
   (tap> value)
@@ -549,7 +550,7 @@
   (is (= []
          (-> [:parallel {:policy :select}
               [:on-cancel [:send-event {:event :interrupted}]
-               [:tick-eater {:count 2 }]]
+               [:tick-eater {:count 2}]]
               [:sequence
                [:tick-eater {:count 1}]
                [:success-leaf]]]
@@ -565,6 +566,12 @@
   (is (= [[:interrupted nil]]
          (-> [:parallel {:policy :select}
               [:on-cancel [:send-event {:event :interrupted}]
-               [:tick-eater {:count 2 }]]
+               [:tick-eater {:count 2}]]
               [:success-leaf]]
              bt/hiccup->context bt/tick bt/get-events)))) 
+
+(deftest hiccup-func-call-test
+  (is (= :failure (-> [:inverter [:success-leaf]] bt/hiccup->context bt/tick bt/get-status)))
+  (is (= :failure (-> [:inverter [(fn [_] [:success-leaf]) 12]] bt/hiccup->context bt/tick bt/get-status)))
+  (is (= :success (-> [:sequence [(fn [] [:<> [:success-leaf] [:success-leaf]])]] bt/hiccup->context bt/tick bt/get-status)))
+  (is (= 3 (-> [:sequence [(fn [] [:<> [:success-leaf] [:success-leaf]])]] bt/hiccup->context bt/tick ctx/get-tick-count))))

@@ -15,8 +15,10 @@
     (s/cat :tag ::tag :params (s/? ::params) :children (s/* ::child))))
 
 
-(s/def ::tag #(some? (type/get-type %)))
+(s/def ::tag (s/or :type #(some? (type/get-type %))
+                   :splice #(= % :<>)))
 
-(s/def ::node (s/multi-spec node-dispatch ::node) #_ (s/cat :tag ::tag :params (s/? ::node-params) :children (s/* ::child)))
+(s/def ::node (s/or :node (s/multi-spec node-dispatch ::node)
+                    :func-call (s/cat :func fn? :params (s/* (constantly true)))))
 (s/def ::params map?)
 (s/def ::child (s/spec ::node))
