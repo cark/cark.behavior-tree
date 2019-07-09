@@ -3,7 +3,7 @@
             [cark.behavior-tree.core :as bt]))
 
 
-;; We define a promotion tracker for a web site
+;; We define a promotion tracker for a web shop
 ;;
 ;; We want to offer a promotion to the indecisive visitors.
 ;; visitors are considered indecisive when they first visit the
@@ -16,10 +16,10 @@
 
 (def tracker
   (-> [:map {:seq [:shopping-cart :shop :shopping-cart]
-             :bind-item :page-name}
+             :bind-item :target-page}
        [:until-success
-        [:on-event {:event :navigate :wait? true :bind-arg :page}
-         [:predicate {:func #(= (bt/get-var % :page) (bt/get-var % :page-name))}]]]]
+        [:on-event {:event :navigate :wait? true :bind-arg :nav-page}
+         [:predicate {:func #(= (bt/get-var % :nav-page) (bt/get-var % :target-page))}]]]]
       bt/hiccup->context))
 
 (deftest promotion-tracker-test
