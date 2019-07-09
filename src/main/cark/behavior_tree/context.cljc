@@ -48,12 +48,9 @@
   [ctx ms]
   (assoc ctx ::time ms))
 
-(defn call-node [ctx node-id message arg]
-  ((tree/get-node ctx node-id) ctx message arg))
-
 (defn tick [ctx node-id]
   (case (db/get-node-status ctx node-id)
-    (:fresh :running) (call-node (inc-tick-count ctx) node-id :tick nil)
+    (:fresh :running) ((tree/get-node ctx node-id) (inc-tick-count ctx) nil)
     (:success :failure) ctx))
 
 (declare cancel)
@@ -74,11 +71,13 @@
 (defn reset-nodes [ctx node-ids]
   (do-nodes ctx node-ids #(set-node-status %1 %2 :fresh)))
 
+(defn get-node-children-ids [ctx node-id]
+  (:children-ids (tree/get-node-meta ctx node-id)))
+
 (defn cancel [ctx node-id]
   ;; TODO: tick cancel node ...cancelling should remove node data as well ..not that's a bug !
   #_(reset-nodes ctx (call-node ctx node-id :get-children-ids nil))
-  (-> (reset-nodes ctx (call-node ctx node-id :get-children-ids nil))
+  (-> (reset-nodes ctx (get-node-children-ids ctx node-id))
       (db/set-node-data node-id nil)))
 
-(defn get-node-children-ids [ctx node-id]
-  (call-node ctx node-id :get-children-ids nil))
+

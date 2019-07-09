@@ -32,12 +32,9 @@
         type (type/get-type tag)
         [id tree] (tree/get-next-id tree)
         [node tree] ((type/get-compile-func type) tree id tag params children-ids)
-        node (fn node-dispatch [ctx message arg]
-               (case message
-                 :tick (node ctx arg)
-                 :get-children-ids children-ids
-                 :get-tag tag
-                 :get-params params))]
+        tree (tree/set-node-meta tree id {:children-ids children-ids
+                                          :tag tag
+                                          :params params})]
     [id (tree/set-node tree id node)]))
 
 (defn parsed->tree [tree parsed]

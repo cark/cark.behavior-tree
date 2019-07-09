@@ -3,12 +3,13 @@
   (:require [cark.behavior-tree.type :as type]))
 
 (def keys "The keys found in a node tree"
-  #{::root-node-id ::current-id ::tree-nodes})
+  #{::root-node-id ::current-id ::tree-nodes ::node-meta})
 
 (defn make []
   {::root-node-id nil
    ::current-id 0
-   ::tree-nodes {}})
+   ::tree-nodes {}
+   ::node-meta {}})
 
 (defn get-next-id [tree]
   [(::current-id tree) (update tree ::current-id inc)])
@@ -31,28 +32,8 @@
 (defn get-root-node [tree]
   (get-node tree (get-root-node-id tree)))
 
+(defn get-node-meta [tree id]
+  (get-in tree [::node-meta id]))
 
-
-(comment
-  (defn compile-node [tree node children-ids]
-    (let [[id tree] (get-next-id tree)
-          [node tree] ((type/get-compile-func node) tree id children-ids)]
-      [id (set-node tree id node)]))
-
-  (defn compile-nodes [tree nodes]
-    (reduce (fn [[ids tree] node]
-              (let [[id tree] (compile-node tree node)]
-                [(conj ids id) tree]))
-            [[] tree] nodes))
-
-  (defn compile-with-children [config children compile-func]
-    (fn [tree id]
-      (let [[children-ids tree] (compile-nodes tree children)
-            compiled-node (compile-func id config children-ids)]
-        [(fn with-children [ctx message arg]
-           (case message
-             :tick (compiled-node ctx message arg)
-             :get-children-ids children-ids))
-         tree])))
-
-  )
+(defn set-node-meta [tree id value]
+  (assoc-in tree [::node-meta id] value))
