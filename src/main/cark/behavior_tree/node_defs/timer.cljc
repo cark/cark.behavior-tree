@@ -10,7 +10,7 @@
   (tap> val)
   val)
 
-(s/def ::duration (s/or :function ifn?
+(s/def ::duration (s/or :function fn?
                         :integer int?))
 (s/def ::timer (s/or :keyword keyword?
                      :function ifn?))

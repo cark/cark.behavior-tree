@@ -15,18 +15,33 @@
         [:timer {:timer :traffic-light :duration 60000}]]]
       bt/hiccup->context (bt/tick 0)))
 
-(deftest traffic-light-1-test
-  (is (= :green (-> (traffic-light-1) bt/bb-get)))
-  (is (= :green (-> (traffic-light-1) (bt/tick+ 49999) bt/bb-get)))
-  (is (= :yellow (-> (traffic-light-1) (bt/tick+ 50000) bt/bb-get)))
-  (is (= :red (-> (traffic-light-1) (bt/tick+ 50000) (bt/tick+ 10000) bt/bb-get)))
-  (is (= :green (-> (traffic-light-1) (bt/tick+ 50000) (bt/tick+ 10000) (bt/tick+ 60000) bt/bb-get)))
-  (is (= :yellow (-> (traffic-light-1) (bt/tick+ 50000) (bt/tick+ 10000) (bt/tick+ 60000) (bt/tick+ 50000) bt/bb-get)))
+(defn do-traffic-light-tests [traffic-light]
+  (is (= :green (-> traffic-light bt/bb-get)))
+  (is (= :green (-> traffic-light (bt/tick+ 49999) bt/bb-get)))
+  (is (= :yellow (-> traffic-light (bt/tick+ 50000) bt/bb-get)))
+  (is (= :red (-> traffic-light (bt/tick+ 50000) (bt/tick+ 10000) bt/bb-get)))
+  (is (= :green (-> traffic-light (bt/tick+ 50000) (bt/tick+ 10000) (bt/tick+ 60000) bt/bb-get)))
+  (is (= :yellow (-> traffic-light (bt/tick+ 50000) (bt/tick+ 10000) (bt/tick+ 60000) (bt/tick+ 50000) bt/bb-get)))
   ;;do the same in a single tick (catching up an exceptionally long GC pause)
-  (is (= :red (-> (traffic-light-1) (bt/tick+ 60000) bt/bb-get)))
-  (is (= :green (-> (traffic-light-1) (bt/tick+ 120000) bt/bb-get)))
-  (is (= :yellow (-> (traffic-light-1) (bt/tick+ 170000) bt/bb-get))))
+  (is (= :red (-> traffic-light (bt/tick+ 60000) bt/bb-get)))
+  (is (= :green (-> traffic-light (bt/tick+ 120000) bt/bb-get)))
+  (is (= :yellow (-> traffic-light (bt/tick+ 170000) bt/bb-get))))
 
+(deftest traffic-light-1-test
+  (do-traffic-light-tests (traffic-light-1)))
+
+;; Same traffic lights, using the map node
+
+(defn traffic-light-2 []
+  (-> [:repeat
+       [:map {:seq [[:green 50000] [:yellow 10000] [:red 60000]] :bind-item :color}
+        [:sequence
+         [:update {:func #(bt/bb-set % (first (bt/get-var % :color)))}]
+         [:timer {:timer :traffic-light :duration #(second (bt/get-var % :color))}]]]]
+      bt/hiccup->context (bt/tick 0)))
+
+(deftest traffic-light-2-test
+  (do-traffic-light-tests (traffic-light-2)))
 
 ;; We define a crossroad with 2 traffic light controllers
 ;; the :ns north-south controller and the :we west-east controller
