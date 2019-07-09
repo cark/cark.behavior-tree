@@ -77,7 +77,10 @@
 (defn cancel [ctx node-id]
   ;; TODO: tick cancel node ...cancelling should remove node data as well ..not that's a bug !
   #_(reset-nodes ctx (call-node ctx node-id :get-children-ids nil))
-  (-> (reset-nodes ctx (get-node-children-ids ctx node-id))
+  (-> (if (= :on-cancel (:tag (tree/get-node-meta ctx node-id)))
+        ((tree/get-node ctx node-id) (inc-tick-count ctx) :cancel)
+        ctx)
+      (reset-nodes (get-node-children-ids ctx node-id))
       (db/set-node-data node-id nil)))
 
 

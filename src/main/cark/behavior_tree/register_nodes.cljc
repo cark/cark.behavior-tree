@@ -20,7 +20,8 @@
             [cark.behavior-tree.node-defs.timer :as timer]
             [cark.behavior-tree.node-defs.always-success :as always-success]
             [cark.behavior-tree.node-defs.always-failure :as always-failure]
-            [cark.behavior-tree.node-defs.map :as map]))
+            [cark.behavior-tree.node-defs.map :as map]
+            [cark.behavior-tree.node-defs.on-cancel :as on-cancel]))
 
 (defn register []
   (success-leaf/register)
@@ -44,4 +45,5 @@
   (timer/register)
   (always-success/register)
   (always-failure/register)
-  (map/register)) 
+  (map/register)
+  (on-cancel/register)) 

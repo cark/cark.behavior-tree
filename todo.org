@@ -1,6 +1,6 @@
 #+STARTUP: hidestars indent content
 * TODO behavior tree
-** TODO on-cancel
+** DONE on-cancel
 ** TODO state machine
 ** TODO Manual
 *** TODO remember to talk about on-cancel

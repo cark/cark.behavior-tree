@@ -544,3 +544,27 @@
                       [:map {:seq [1 2 3] :bind-item :item}
                        [:update {:func #(bt/bb-update % conj (bt/get-var % :item))}]]]
                      bt/hiccup->context bt/tick bt/bb-get))))
+
+(deftest on-cancel-test
+  (is (= []
+         (-> [:parallel {:policy :select}
+              [:on-cancel [:send-event {:event :interrupted}]
+               [:tick-eater {:count 2 }]]
+              [:sequence
+               [:tick-eater {:count 1}]
+               [:success-leaf]]]
+             bt/hiccup->context bt/tick bt/get-events)))
+  (is (= [[:interrupted nil]]
+         (-> [:parallel {:policy :select}
+              [:on-cancel [:send-event {:event :interrupted}]
+               [:tick-eater {:count 2}]]
+              [:sequence
+               [:tick-eater {:count 1}]
+               [:success-leaf]]]
+             bt/hiccup->context bt/tick bt/tick bt/get-events)))
+  (is (= [[:interrupted nil]]
+         (-> [:parallel {:policy :select}
+              [:on-cancel [:send-event {:event :interrupted}]
+               [:tick-eater {:count 2 }]]
+              [:success-leaf]]
+             bt/hiccup->context bt/tick bt/get-events)))) 
