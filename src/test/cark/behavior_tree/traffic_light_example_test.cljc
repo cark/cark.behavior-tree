@@ -1,6 +1,7 @@
 (ns cark.behavior-tree.traffic-light-example-test
   (:require [clojure.test :as t :refer [deftest is]]
-            [cark.behavior-tree.core :as bt]))
+            [cark.behavior-tree.core :as bt]
+            [cark.behavior-tree.state-machine :as sm]))
 
 ;; We define a traffic light changing through all three colors on a fixed schedule
 
@@ -42,6 +43,36 @@
 
 (deftest traffic-light-2-test
   (do-traffic-light-tests (traffic-light-2)))
+
+;; same thing with a state machine
+
+(defn traffic-light-3 []
+  (-> [sm/state-machine [:sm] :green
+       [sm/state :green
+        [:sequence
+         [:timer {:timer :traffic-light :duration 50000 :wait? true}]
+         [sm/transition :yellow]]]
+       [sm/state :yellow
+        [:sequence
+         [:timer {:timer :traffic-light :duration 10000 :wait? true}]
+         [sm/transition :red]]]
+       [sm/state :red
+        [:sequence
+         [:timer {:timer :traffic-light :duration 60000 :wait? true}]
+         [sm/transition :green]]]]
+      bt/hiccup->context (bt/tick 0)))
+
+(deftest traffic-light-3-test
+  (let [get-state (bt/bb-getter-in [:sm])]
+    (is (-> (traffic-light-3)))
+    (is (= :green (-> (traffic-light-3) get-state)))
+    (is (= :yellow (-> (traffic-light-3) (bt/tick+ 50000) get-state)))
+    (is (= :running (-> (traffic-light-3) (bt/tick+ 50000) bt/get-status)))
+    (is (= :red (-> (traffic-light-3) (bt/tick+ 50000) (bt/tick+ 10000) get-state)))
+    (is (= :green (-> (traffic-light-3) (bt/tick+ 50000) (bt/tick+ 10000) (bt/tick+ 60000) get-state)))
+
+    (is (= :red (-> (traffic-light-3) (bt/tick+ 60000) get-state)))
+    (is (= :green (-> (traffic-light-3) (bt/tick+ 120000) get-state)))))
 
 ;; We define a crossroad with 2 traffic light controllers
 ;; the :ns north-south controller and the :we west-east controller

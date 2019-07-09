@@ -5,10 +5,14 @@
             [cark.behavior-tree.lexical-context :as lc]
             [clojure.set :as set]))
 
+(defn log [value]
+  (tap> value)
+  value)
+
 (def default-max-tick-count 100000)
 
 (def specific-keys
-  #{::max-tick-count ::tick-count ::time})
+  #{::max-tick-count ::tick-count ::time ::tracing ::trace-depth})
 
 (def keys
   (set/union specific-keys db/keys tree/keys lc/keys))
@@ -50,8 +54,20 @@
 
 (defn tick [ctx node-id]
   (case (db/get-node-status ctx node-id)
-    (:fresh :running) ((tree/get-node ctx node-id) (inc-tick-count ctx) nil)
-    (:success :failure) ctx))
+    (:fresh :running) (if (::tracing ctx)
+                        (do
+                          (log (apply str (concat (repeat (::trace-depth ctx) "  ")
+                                                  [node-id (:tag (tree/get-node-meta ctx node-id)) ":"
+                                                   (db/get-node-status ctx node-id)] )))
+                          (-> ((tree/get-node ctx node-id) (-> ctx (update ::trace-depth inc) inc-tick-count) nil)
+                              (update ::trace-depth dec)))
+                        ((tree/get-node ctx node-id) (inc-tick-count ctx) nil))
+    (:success :failure) (if (::tracing ctx)
+                          (do (log (apply str (concat (repeat (::trace-depth ctx) "  ")
+                                                      ["skip:" node-id (:tag (tree/get-node-meta ctx node-id)) ":"
+                                                       (db/get-node-status ctx node-id)] )))
+                              ctx)
+                          ctx)))
 
 (declare cancel)
 
@@ -83,4 +99,9 @@
       (reset-nodes (get-node-children-ids ctx node-id))
       (db/set-node-data node-id nil)))
 
+(defn set-tracing [ctx]
+  (assoc ctx ::tracing true ::trace-depth 0))
+
+(defn clear-tracing [ctx]
+  (assoc ctx ::tracing false ::trace-depth 0))
 

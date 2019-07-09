@@ -50,6 +50,7 @@
                       bt/tick
                       bt/get-status))))
 
+
 ;; We define a quick and dirty api, saving the behavior tree's working set to an atom
 
 (def conn (atom (bt/extract-db tracker)))
