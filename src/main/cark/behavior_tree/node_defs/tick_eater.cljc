@@ -13,22 +13,23 @@
 (s/def ::count (s/or :function fn?
                      :integer (s/and int? #(>= % 0))))
 
-(defn compile-node [id tag params children]
+(defn compile-node [tree id tag params children]
   (let [[type value] (:count params)
         get-count (case type
                     :integer (constantly value)
                     :function value)]
-    (fn tick-eater-tick [ctx arg]
-      (case (db/get-node-status ctx id)
-        :fresh (recur (-> (db/set-node-status ctx id :running)
-                          (db/set-node-data id 0))
-                      arg)
-        :running (let [i (db/get-node-data ctx id)
-                       c (get-count ctx)]
-                   (if (< i c)
-                     (db/update-node-data ctx id inc)
-                     (-> (db/set-node-status ctx id :success)
-                         (db/set-node-data id nil))))))))
+    [(fn tick-eater-tick [ctx arg]
+       (case (db/get-node-status ctx id)
+         :fresh (recur (-> (db/set-node-status ctx id :running)
+                           (db/set-node-data id 0))
+                       arg)
+         :running (let [i (db/get-node-data ctx id)
+                        c (get-count ctx)]
+                    (if (< i c)
+                      (db/update-node-data ctx id inc)
+                      (-> (db/set-node-status ctx id :success)
+                          (db/set-node-data id nil))))))
+     tree]))
 
 (defn register []
   (type/register

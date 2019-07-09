@@ -5,10 +5,11 @@
             [cark.behavior-tree.type :as type]
             [cark.behavior-tree.base-nodes :as bn]))
 
-(defn compile-node [id tag params children-ids]
-  (fn success-leaf-tick [context arg]
-    (case (db/get-node-status context id)
-      :fresh (db/set-node-status context id :success))))
+(defn compile-node [tree id tag params children-ids]
+  [(fn success-leaf-tick [context arg]
+     (case (db/get-node-status context id)
+       :fresh (db/set-node-status context id :success)))
+   tree])
 
 (defn register []
   (type/register

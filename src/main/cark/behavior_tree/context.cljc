@@ -75,7 +75,10 @@
   (do-nodes ctx node-ids #(set-node-status %1 %2 :fresh)))
 
 (defn cancel [ctx node-id]
-  ;; TODO: tick cancel node ...cancelling should remove node data as well
+  ;; TODO: tick cancel node ...cancelling should remove node data as well ..not that's a bug !
   #_(reset-nodes ctx (call-node ctx node-id :get-children-ids nil))
-  (-> (db/set-node-data ctx node-id nil)
-      (reset-nodes (call-node ctx node-id :get-children-ids nil))))
+  (-> (reset-nodes ctx (call-node ctx node-id :get-children-ids nil))
+      (db/set-node-data node-id nil)))
+
+(defn get-node-children-ids [ctx node-id]
+  (call-node ctx node-id :get-children-ids nil))

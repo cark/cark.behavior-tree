@@ -27,20 +27,21 @@
     (fn [node]
       (into {} (map #(% node)) funcs))))
 
-(defn compile-node [id tag params [child-id]]
+(defn compile-node [tree id tag params [child-id]]
   (let [bindings (-> params :let :bindings)
         get-bindings (make-get-bindings bindings)]
-    (fn bind-tick [ctx arg]
-      (let [bindings (get-bindings ctx)
-            saved-bindings (lc/get-bindings ctx)
-            ctx (-> (lc/set-bindings ctx (merge saved-bindings bindings))
-                    (ctx/tick child-id)
-                    (lc/set-bindings saved-bindings))
-            child-status (db/get-node-status ctx child-id)]
-        (case child-status
-          (:success :failure) (-> (db/set-node-status ctx id child-status)
-                                  (ctx/set-node-status child-id :fresh))
-          :running (-> (db/set-node-status ctx id :running)))))))
+    [(fn bind-tick [ctx arg]
+       (let [bindings (get-bindings ctx)
+             saved-bindings (lc/get-bindings ctx)
+             ctx (-> (lc/set-bindings ctx (merge saved-bindings bindings))
+                     (ctx/tick child-id)
+                     (lc/set-bindings saved-bindings))
+             child-status (db/get-node-status ctx child-id)]
+         (case child-status
+           (:success :failure) (-> (db/set-node-status ctx id child-status)
+                                   (ctx/set-node-status child-id :fresh))
+           :running (-> (db/set-node-status ctx id :running)))))
+     tree]))
 
 (defn register []
   (type/register

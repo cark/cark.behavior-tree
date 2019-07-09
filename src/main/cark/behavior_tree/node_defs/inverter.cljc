@@ -5,17 +5,18 @@
             [cark.behavior-tree.type :as type]
             [cark.behavior-tree.base-nodes :as bn]))
 
-(defn compile-node [id tag params [child-id]]
-  (fn inverter-tick [ctx arg]
-    (case (db/get-node-status ctx id)
-      :fresh (recur (db/set-node-status ctx id :running) arg)
-      :running (let [ctx (ctx/tick ctx child-id)]
-                 (case (db/get-node-status ctx child-id)
-                   :success (-> (ctx/set-node-status ctx child-id :fresh)
-                                (db/set-node-status id :success))
-                   :failure (-> (ctx/set-node-status ctx child-id :fresh)
-                                (db/set-node-status id :failure))
-                   :running ctx)))))
+(defn compile-node [tree id tag params [child-id]]
+  [(fn inverter-tick [ctx arg]
+     (case (db/get-node-status ctx id)
+       :fresh (recur (db/set-node-status ctx id :running) arg)
+       :running (let [ctx (ctx/tick ctx child-id)]
+                  (case (db/get-node-status ctx child-id)
+                    :success (-> (ctx/set-node-status ctx child-id :fresh)
+                                 (db/set-node-status id :failure))
+                    :failure (-> (ctx/set-node-status ctx child-id :fresh)
+                                 (db/set-node-status id :success))
+                    :running ctx))))
+   tree])
 
 (defn register []
   (type/register

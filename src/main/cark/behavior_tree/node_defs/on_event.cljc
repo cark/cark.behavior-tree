@@ -19,7 +19,7 @@
 (s/def ::wait? (s/or :boolean boolean?
                      :function fn?))
 
-(defn compile-node [id tag params [child-id]]
+(defn compile-node [tree id tag params [child-id]]
   (let [[type value] (:event params)
         get-event-name (case type
                          :keyword (constantly value)
@@ -39,30 +39,31 @@
                 :boolean (constantly value)
                 :function value
                 nil (constantly false))]
-    (fn on-event-tick [ctx arg]
-      (case (db/get-node-status ctx id)
-        :fresh (recur (-> (db/set-node-status ctx id :running)
-                          (db/set-node-data id [:consume nil]))
-                      arg)
-        :running (let [[state arg] (db/get-node-data ctx id)]
-                   (case state
-                     :consume (let [[event ctx] (event/pop-event-in ctx (get-event-name ctx) (get-pick?-func ctx))]
-                                (if event
-                                  (recur (db/set-node-data ctx id [:run (second event)]) arg)
-                                  (if (wait? ctx)
-                                    ctx
-                                    (-> (db/set-node-status ctx id :failure)
-                                        (db/set-node-data id nil)))))
-                     :run (let [saved-bindings (lc/get-bindings ctx)
-                                ctx (-> (lc/set-bindings ctx (assoc saved-bindings bind-arg arg))
-                                        (ctx/tick child-id)
-                                        (lc/set-bindings saved-bindings))
-                                child-status (db/get-node-status ctx child-id)]
-                            (case child-status
-                              (:success :failure) (-> (ctx/set-node-status ctx child-id :fresh)
-                                                      (db/set-node-data id nil)
-                                                      (ctx/set-node-status id child-status))
-                              :running ctx))))))))
+    [(fn on-event-tick [ctx arg]
+       (case (db/get-node-status ctx id)
+         :fresh (recur (-> (db/set-node-status ctx id :running)
+                           (db/set-node-data id [:consume nil]))
+                       arg)
+         :running (let [[state arg] (db/get-node-data ctx id)]
+                    (case state
+                      :consume (let [[event ctx] (event/pop-event-in ctx (get-event-name ctx) (get-pick?-func ctx))]
+                                 (if event
+                                   (recur (db/set-node-data ctx id [:run (second event)]) arg)
+                                   (if (wait? ctx)
+                                     ctx
+                                     (-> (db/set-node-status ctx id :failure)
+                                         (db/set-node-data id nil)))))
+                      :run (let [saved-bindings (lc/get-bindings ctx)
+                                 ctx (-> (lc/set-bindings ctx (assoc saved-bindings bind-arg arg))
+                                         (ctx/tick child-id)
+                                         (lc/set-bindings saved-bindings))
+                                 child-status (db/get-node-status ctx child-id)]
+                             (case child-status
+                               (:success :failure) (-> (ctx/set-node-status ctx child-id :fresh)
+                                                       (db/set-node-data id nil)
+                                                       (ctx/set-node-status id child-status))
+                               :running ctx))))))
+     tree]))
 
 (defn register []
   (type/register

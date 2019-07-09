@@ -18,7 +18,7 @@
 (s/def ::wait? (s/or :boolean boolean?
                      :function fn?))
 
-(defn compile-node [id tag params [child-id]]
+(defn compile-node [tree id tag params [child-id]]
   (let [[type value] (:event params)
         get-event-name (case type
                          :keyword (constantly value)
@@ -40,14 +40,15 @@
                 :boolean (constantly value)
                 :function value
                 nil (constantly false))]
-    (fn consume-event-tick [ctx arg]
-      (let [[event ctx] (event/pop-event-in ctx (get-event-name ctx) (get-pick?-func ctx))]
-        (if event
-          (-> (with-arg ctx (second event))
-              (db/set-node-status id :success))
-          (if (wait? ctx)
-            (ctx/set-node-status ctx id :running)
-            (ctx/set-node-status ctx id :failure)))))))
+    [(fn consume-event-tick [ctx arg]
+       (let [[event ctx] (event/pop-event-in ctx (get-event-name ctx) (get-pick?-func ctx))]
+         (if event
+           (-> (with-arg ctx (second event))
+               (db/set-node-status id :success))
+           (if (wait? ctx)
+             (ctx/set-node-status ctx id :running)
+             (ctx/set-node-status ctx id :failure)))))
+     tree]))
 
 (defn register []
   (type/register

@@ -10,19 +10,20 @@
 (s/def ::wait? (s/or :boolean boolean?
                      :function fn?))
 
-(defn compile-node [id tag params [child-id]]
+(defn compile-node [tree id tag params _]
   (let [func (:func params)
         [type value] (:wait? params)
         wait? (case type
                 :boolean (constantly value)
                 :function value
                 nil (constantly false))]
-    (fn predicate-tick [ctx arg]
-      (if (func ctx)
-        (ctx/set-node-status ctx id :success)
-        (if (wait? ctx)
-          (ctx/set-node-status ctx id :running)
-          (ctx/set-node-status ctx id :failure))))))
+    [(fn predicate-tick [ctx arg]
+       (if (func ctx)
+         (ctx/set-node-status ctx id :success)
+         (if (wait? ctx)
+           (ctx/set-node-status ctx id :running)
+           (ctx/set-node-status ctx id :failure))))
+     tree]))
 
 (defn register []
   (type/register

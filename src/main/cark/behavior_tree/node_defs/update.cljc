@@ -8,11 +8,12 @@
 
 (s/def ::func fn?)
 
-(defn compile-node [id tag params [child-id]]
+(defn compile-node [tree id tag params [child-id]]
   (let [func (:func params)]
-    (fn update-tick [ctx arg]
-      (-> (func ctx)
-          (db/set-node-status id :success)))))
+    [(fn update-tick [ctx arg]
+       (-> (func ctx)
+           (db/set-node-status id :success)))
+     tree]))
 
 (defn register []
   (type/register

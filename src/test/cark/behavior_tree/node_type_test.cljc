@@ -32,17 +32,23 @@
 
 (deftest inverter-success-test
   (let [ctx (-> [:inverter [:success-leaf]] bt/hiccup->context)]
+    (is (= :failure (-> ctx bt/tick bt/get-status)))
+    (is (= 2 (-> ctx bt/tick ctx/get-tick-count)))
+    (is (= :failure (-> ctx bt/tick bt/tick bt/get-status)))
+    (is (= 0 (-> ctx bt/tick bt/tick ctx/get-tick-count)))))
+
+(deftest inverter-failure-test
+  (let [ctx (-> [:inverter [:failure-leaf]] bt/hiccup->context)]
     (is (= :success (-> ctx bt/tick bt/get-status)))
     (is (= 2 (-> ctx bt/tick ctx/get-tick-count)))
     (is (= :success (-> ctx bt/tick bt/tick bt/get-status)))
     (is (= 0 (-> ctx bt/tick bt/tick ctx/get-tick-count)))))
 
-(deftest inverter-failure-test
-  (let [ctx (-> [:inverter [:failure-leaf]] bt/hiccup->context)]
-    (is (= :failure (-> ctx bt/tick bt/get-status)))
-    (is (= 2 (-> ctx bt/tick ctx/get-tick-count)))
-    (is (= :failure (-> ctx bt/tick bt/tick bt/get-status)))
-    (is (= 0 (-> ctx bt/tick bt/tick ctx/get-tick-count)))))
+(deftest inverter+tick-eater-test
+  (is (= :running (-> [:inverter [:tick-eater {:count 1}]]
+                      bt/hiccup->context bt/tick bt/get-status)))
+  (is (= :failure (-> [:inverter [:tick-eater {:count 1}]]
+                      bt/hiccup->context bt/tick bt/tick bt/get-status))))
 
 (deftest sequence-test
   (let [ctx (-> [:sequence [:success-leaf] [:success-leaf]] bt/hiccup->context)]
@@ -89,12 +95,7 @@
 (deftest tick-eater-cancel-test
   (is (= 1 (let [ctx (-> [:tick-eater {:count 2}]
                          bt/hiccup->context bt/tick)]
-             (db/get-node-data ctx (tree/get-root-node-id ctx)))))
-  (is (= nil (let [ctx (-> [:tick-eater {:count 2}]
-                           bt/hiccup->context bt/tick)
-                   id (tree/get-root-node-id ctx)
-                   ctx (ctx/set-node-status ctx id :fresh)]
-               (db/get-node-data ctx id)))))
+             (db/get-node-data ctx (tree/get-root-node-id ctx))))))
 
 (deftest sequence+tick-eater-test
   (is (= :running (-> [:sequence
@@ -245,3 +246,222 @@
   (is (= 1 (-> [:on-event {:event :foo :bind-arg :a :wait? true}
                 [:update {:func #(bt/bb-set % (bt/get-var % :a))}]] bt/hiccup->context
                bt/tick (bt/send-event :foo 1) bt/tick bt/bb-get))))
+
+(deftest guard-test
+  (is (= :failure (-> [:guard [:failure-leaf] [:tick-eater {:count 5}]] bt/hiccup->context
+                      bt/tick bt/get-status)))
+  (is (= :running (-> [:guard [:success-leaf] [:tick-eater {:count 1}]] bt/hiccup->context
+                      bt/tick bt/get-status)))
+  (is (= :success (-> [:guard [:success-leaf] [:tick-eater {:count 1}]] bt/hiccup->context
+                      bt/tick bt/tick bt/get-status)))
+  (is (= :success (-> [:guard [:predicate {:func (bt/bb-getter)}]
+                       [:tick-eater {:count (constantly 1)}]] bt/hiccup->context
+                      bt/tick bt/tick bt/get-status)))
+  (let [ctx (-> [:guard [:predicate {:func (bt/bb-getter)}]
+                 [:tick-eater {:count 2}]] bt/hiccup->context
+                bt/tick (bt/bb-set nil) bt/tick)]
+    (is (= :failure (-> ctx bt/get-status)))
+    (is (= :fresh (db/get-node-status ctx (get (ctx/get-node-children-ids ctx (tree/get-root-node-id ctx)) 1)))))
+  (is-thrown? #(-> [:guard] bt/hiccup->context))
+  (is-thrown? #(-> [:guard [:success-leaf]] bt/hiccup->context))) 
+
+(deftest repeat-no-count-test
+  (is-thrown? #(-> [:repeat [:success-leaf]] bt/hiccup->context bt/tick)
+              "Cannot loop endlessly")
+  (is-thrown? #(-> [:repeat] bt/hiccup->context)
+              "need at least one child")
+  (is (= :running (-> [:repeat [:tick-eater {:count (constantly 1)}]] bt/hiccup->context
+                      bt/tick bt/get-status)))
+  (is (= 2 (-> [:repeat [:tick-eater {:count (constantly 1)}]] bt/hiccup->context
+               bt/tick ctx/get-tick-count)))
+  (is (= :running (-> [:repeat [:tick-eater {:count (constantly 1)}]] bt/hiccup->context
+                      bt/tick bt/tick bt/get-status)))
+  (is (= :running (-> [:repeat [:tick-eater {:count (constantly 1)}]] bt/hiccup->context
+                      bt/tick bt/tick bt/tick bt/get-status)))
+  (is (= :running (-> [:repeat {:while bt/bb-get}
+                       [:consume-event {:event :bleh :wait? true}]]
+                      bt/hiccup->context (bt/bb-set true) bt/tick bt/get-status)))
+  (is (= :success (-> [:repeat {:while bt/bb-get}
+                       [:consume-event {:event :bleh :wait? true}]]
+                      bt/hiccup->context (bt/bb-set false) bt/tick bt/get-status))))
+
+(deftest repeat-count-test
+  (is (= :success (-> [:repeat {:count (constantly 5)} [:success-leaf]] bt/hiccup->context bt/tick bt/get-status)))
+  (is (= :running (-> [:repeat {:while bt/bb-get
+                                :count 25}
+                       [:consume-event {:event :bleh :wait? true}]]
+                      bt/hiccup->context (bt/bb-set true) bt/tick bt/get-status)))
+  (is (= :success (-> [:repeat {:while bt/bb-get
+                                :count 25}
+                       [:consume-event {:event :bleh :wait? true}]]
+                      bt/hiccup->context (bt/bb-set false) bt/tick bt/get-status))))
+
+
+(deftest guard-selector-test
+  (is-thrown? #(-> [:guard-selector [:success-leaf]] bt/hiccup->context))
+  (is (-> [:guard-selector [:guard [:success-leaf] [:success-leaf]]]
+          bt/hiccup->context))
+  (is (= :running (-> [:guard-selector
+                       [:guard [:success-leaf]
+                        [:tick-eater {:count 1}]]]
+                      bt/hiccup->context bt/tick bt/get-status)))
+  (is (= :success (-> [:guard-selector
+                       [:guard [:success-leaf]
+                        [:tick-eater {:count 1}]]]
+                      bt/hiccup->context bt/tick bt/tick bt/get-status)))
+  (is (= :failure (-> [:guard-selector
+                       [:guard [:failure-leaf]
+                        [:tick-eater {:count 1}]]]
+                      bt/hiccup->context bt/tick bt/get-status)))
+  (is (= :running (-> [:guard-selector
+                       [:guard [:failure-leaf]
+                        [:failure-leaf]]
+                       [:guard [:success-leaf]
+                        [:tick-eater {:count 1}]]]
+                      bt/hiccup->context bt/tick bt/get-status)))
+  (is (= :success (-> [:guard-selector
+                       [:guard [:failure-leaf]
+                        [:failure-leaf]]
+                       [:guard [:success-leaf]
+                        [:tick-eater {:count 1}]]]
+                      bt/hiccup->context bt/tick  bt/tick bt/get-status)))
+  (is (= :running (-> [:guard-selector
+                       [:guard [:failure-leaf]
+                        [:failure-leaf]]
+                       [:guard [:success-leaf]
+                        [:inverter [:tick-eater {:count 1}]]]]
+                      bt/hiccup->context bt/tick bt/get-status)))
+  (is (= :failure (-> [:guard-selector
+                       [:guard [:failure-leaf]
+                        [:failure-leaf]]
+                       [:guard [:success-leaf]
+                        [:inverter [:tick-eater {:count 1}]]]]
+                      bt/hiccup->context bt/tick bt/tick bt/get-status)))
+
+  ;; cancelling running nodes
+  ;; we first test our counter
+  (is (= :running (-> [:parallel {:policy :select}
+                       [:sequence
+                        [:update {:func #(bt/bb-set % {:i 0 :result nil})}]
+                        [:repeat [:sequence
+                                  [:update {:func #(bt/bb-update % update :i inc)}]
+                                  [:tick-eater {:count 1}]]]]]
+                      bt/hiccup->context bt/tick bt/get-status)))
+  (is (= 1 (-> [:parallel {:policy :select}
+                [:sequence
+                 [:update {:func #(bt/bb-set % {:i 0 :result nil})}]
+                 [:repeat [:sequence
+                           [:update {:func #(bt/bb-update % update :i inc)}]
+                           [:tick-eater {:count 1}]]]]]
+               bt/hiccup->context bt/tick bt/bb-get :i)))
+  (is (= 2 (-> [:parallel {:policy :select}
+                [:sequence
+                 [:update {:func #(bt/bb-set % {:i 0 :result nil})}]
+                 [:repeat [:sequence
+                           [:update {:func #(bt/bb-update % update :i inc)}]
+                           [:tick-eater {:count 1}]]]]]
+               bt/hiccup->context bt/tick bt/tick bt/bb-get :i)))
+  ;; we run and no cancel
+  (is (= :running (-> [:parallel {:policy :select}
+                       [:sequence
+                        [:update {:func #(bt/bb-set % {:i 0 :result nil})}]
+                        [:repeat [:sequence
+                                  [:update {:func #(bt/bb-update % update :i inc)}]
+                                  [:tick-eater {:count 1}]]]]
+                       [:guard-selector
+                        [:guard [:predicate {:func #(<= (-> % bt/bb-get :i) 1)}]
+                         [:tick-eater {:count 1}]]
+                        [:guard [:predicate {:func #(> (-> % bt/bb-get :i) 1)}]
+                         [:success-leaf]]]]
+                      bt/hiccup->context bt/tick bt/get-status)))
+  (is (= :success (-> [:parallel {:policy :select}
+                       [:sequence
+                        [:update {:func #(bt/bb-set % {:i 0 :result nil})}]
+                        [:repeat [:sequence
+                                  [:update {:func #(bt/bb-update % update :i inc)}]
+                                  [:tick-eater {:count 1}]]]]
+                       [:guard-selector
+                        [:guard [:predicate {:func #(<= (-> % bt/bb-get :i) 1)}]
+                         [:tick-eater {:count 1}]]
+                        [:guard [:predicate {:func #(> (-> % bt/bb-get :i) 1)}]
+                         [:success-leaf]]]]
+                      bt/hiccup->context bt/tick bt/tick bt/get-status)))
+  (is (= :running (-> [:parallel {:policy :select}
+                       [:sequence
+                        [:update {:func #(bt/bb-set % {:i 0 :result nil})}]
+                        [:repeat [:sequence
+                                  [:update {:func #(bt/bb-update % update :i inc)}]
+                                  [:tick-eater {:count 1}]]]]
+                       [:guard-selector
+                        [:guard [:predicate {:func #(<= (-> % bt/bb-get :i) 1)}]
+                         [:tick-eater {:count 1}]]
+                        [:guard [:predicate {:func #(> (-> % bt/bb-get :i) 1)}]
+                         [:failure-leaf]]]]
+                      bt/hiccup->context bt/tick bt/tick bt/get-status)))
+  (is (= :running (-> [:parallel {:policy :select}
+                       [:sequence
+                        [:update {:func #(bt/bb-set % {:i 0 :result nil})}]
+                        [:repeat [:sequence
+                                  [:update {:func #(bt/bb-update % update :i inc)}]
+                                  [:tick-eater {:count 1}]]]]
+                       [:guard-selector
+                        [:guard [:predicate {:func #(<= (-> % bt/bb-get :i) 1)}]
+                         [:tick-eater {:count 1}]]
+                        [:guard [:predicate {:func #(= (-> % bt/bb-get :i) 2)}]
+                         [:tick-eater {:count 1}]]]]
+                      bt/hiccup->context bt/tick bt/tick bt/get-status)))
+  (is (= :success (-> [:parallel {:policy :select} 
+                       [:sequence
+                        [:update {:func #(bt/bb-set % {:i 0 :result nil})}]
+                        [:repeat [:sequence
+                                  [:update {:func #(bt/bb-update % update :i inc)}]
+                                  [:tick-eater {:count 1}]]]]
+                       [:guard-selector 
+                        [:guard [:predicate {:func #(<= (-> % bt/bb-get :i) 1)}]
+                         [:tick-eater {:count 1}]]
+                        [:guard [:predicate {:func #(= (-> % bt/bb-get :i) 2)}]
+                         [:tick-eater {:count 1}]]
+                        [:guard [:predicate {:func #(> (-> % bt/bb-get :i) 2)}]
+                         [:tick-eater {:count 1}]]]]
+                      bt/hiccup->context bt/tick bt/tick bt/tick bt/get-status)))
+  (is (= :success (-> [:parallel {:policy :select}
+                       [:sequence
+                        [:update {:func #(bt/bb-set % {:i 0 :result nil})}]
+                        [:repeat [:sequence
+                                  [:update {:func #(bt/bb-update % update :i inc)}]
+                                  [:tick-eater {:count 1}]]]]
+                       [:guard-selector
+                        [:guard [:predicate {:func #(<= (-> % bt/bb-get :i) 1)}]
+                         [:tick-eater {:count 1}]]
+                        [:guard [:predicate {:func #(= (-> % bt/bb-get :i) 2)}]
+                         [:tick-eater {:count 1}]]
+                        [:guard [:predicate {:func #(> (-> % bt/bb-get :i) 2)}]
+                         [:tick-eater {:count 1}]]]]
+                      bt/hiccup->context bt/tick bt/tick bt/tick bt/tick bt/get-status)))
+  (is (= :success (-> [:parallel {:policy :select} 
+                       [:sequence
+                        [:update {:func #(bt/bb-set % {:i 0 :result nil})}]
+                        [:repeat [:sequence
+                                  [:update {:func #(bt/bb-update % update :i inc)}]
+                                  [:tick-eater {:count 1}]]]]
+                       [:guard-selector
+                        [:guard [:predicate {:func #(let [i (-> % bt/bb-get :i)]
+                                                      (or (<=  1)
+                                                          (= i 4)))}]
+                         [:tick-eater {:count 1}]]
+                        [:guard [:predicate {:func #(= (-> % bt/bb-get :i) 2)}]
+                         [:tick-eater {:count 1}]]
+                        [:guard [:predicate {:func #(= (-> % bt/bb-get :i) 3)}]
+                         [:tick-eater {:count 1}]]]]
+                      bt/hiccup->context bt/tick bt/tick bt/tick bt/tick bt/get-status))))
+
+(deftest until-success-test
+  (is (= :success (-> [:until-success [:success-leaf]] bt/hiccup->context bt/tick bt/get-status)))
+  (is (= :running (-> [:until-success [:tick-eater {:count 1}]] bt/hiccup->context bt/tick bt/get-status)))
+  (is (= :success (-> [:until-success [:tick-eater {:count 1}]] bt/hiccup->context bt/tick bt/tick bt/get-status))))
+
+(deftest until-failure-test
+  (is (= :success (-> [:until-failure [:failure-leaf]] bt/hiccup->context bt/tick bt/get-status)))
+  (is (= :running (-> [:until-failure [:inverter [:tick-eater {:count 1}]]] bt/hiccup->context bt/tick bt/get-status)))
+  (is (= :success (-> [:until-failure [:inverter [:tick-eater {:count 1}]]] bt/hiccup->context bt/tick bt/tick bt/get-status))))
+

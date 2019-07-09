@@ -58,20 +58,21 @@
     :sequence (sequence-policy-func)
     :values (values-policy-func value)))
 
-(defn compile-node [id tag params children-ids]
+(defn compile-node [tree id tag params children-ids]
   (let [policy-func (if-let [policy (:policy params)]
                       (parsed-policy->func policy)
                       (sequence-policy-func))]
-    (fn parallel-tick [ctx arg]
-      (case (db/get-node-status ctx id)        
-        :fresh (recur (db/set-node-status ctx id :running) arg)
-        :running (let [ctx (ctx/do-nodes ctx children-ids #(ctx/tick %1 %2))
-                       children-status (mapv #(db/get-node-status ctx %) children-ids)
-                       result-status (policy-func children-status)]
-                   (case result-status
-                     (:success :failure) (-> (db/set-node-status ctx id result-status)
-                                             (ctx/reset-nodes children-ids))
-                     :running ctx))))))
+    [(fn parallel-tick [ctx arg]
+       (case (db/get-node-status ctx id)        
+         :fresh (recur (db/set-node-status ctx id :running) arg)
+         :running (let [ctx (ctx/do-nodes ctx children-ids #(ctx/tick %1 %2))
+                        children-status (mapv #(db/get-node-status ctx %) children-ids)
+                        result-status (policy-func children-status)]
+                    (case result-status
+                      (:success :failure) (-> (db/set-node-status ctx id result-status)
+                                              (ctx/reset-nodes children-ids))
+                      :running ctx))))
+     tree]))
 
 (defn register []
   (type/register

@@ -11,7 +11,7 @@
                      :function fn?))
 (s/def ::arg fn?)
 
-(defn compile-node [id tag params [child-id]]
+(defn compile-node [tree id tag params [child-id]]
   (let [[type value] (:event params)
         get-event-name (case type
                          :keyword (constantly value)
@@ -19,9 +19,10 @@
         get-arg (if-let [func (:arg params)]
                   func
                   (constantly nil))]
-    (fn send-event-tick [ctx arg]
-      (-> (event/add-event-out ctx (get-event-name ctx) (get-arg ctx))
-          (db/set-node-status id :success)))))
+    [(fn send-event-tick [ctx arg]
+       (-> (event/add-event-out ctx (get-event-name ctx) (get-arg ctx))
+           (db/set-node-status id :success)))
+     tree]))
 
 (defn register []
   (type/register

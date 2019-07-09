@@ -11,7 +11,12 @@
             [cark.behavior-tree.node-defs.parallel :as parallel]
             [cark.behavior-tree.node-defs.send-event :as send-event]
             [cark.behavior-tree.node-defs.consume-event :as consume-event]
-            [cark.behavior-tree.node-defs.on-event :as on-event]))
+            [cark.behavior-tree.node-defs.on-event :as on-event]
+            [cark.behavior-tree.node-defs.guard :as guard]
+            [cark.behavior-tree.node-defs.guard-selector :as guard-selector]
+            [cark.behavior-tree.node-defs.repeat :as repeat]
+            [cark.behavior-tree.node-defs.until-success :as until-success]
+            [cark.behavior-tree.node-defs.until-failure :as until-failure]))
 
 (defn register []
   (success-leaf/register)
@@ -26,4 +31,9 @@
   (parallel/register)
   (send-event/register)
   (consume-event/register)
-  (on-event/register))
+  (on-event/register)
+  (guard/register)
+  (guard-selector/register)
+  (repeat/register)
+  (until-success/register)
+  (until-failure/register))
