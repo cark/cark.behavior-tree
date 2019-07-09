@@ -20,7 +20,7 @@
   (:sm (bt/bb-get ctx)))
 
 (deftest simple-test
-  (let [tree (-> [sm/state-machine [:sm] :green
+  (let [tree (-> [sm/make [:sm] :green
                   (sm/state :green (sm/events (sm/event :advance (sm/transition :yellow))))
                   (sm/state :yellow (sm/events (sm/event :advance (sm/transition :red))))
                   (sm/state :red (sm/events (sm/event :advance (sm/transition :green))))]
@@ -36,7 +36,7 @@
     (is (= :running (-> tree advance advance advance bt/get-status)))))
 
 (deftest end-state-test
-  (let [tree (-> [sm/state-machine [:sm] :start
+  (let [tree (-> [sm/make [:sm] :start
                   (sm/state :start (sm/events (sm/event :advance (sm/transition :end))))
                   (sm/end-state :end)]
                  bt/hiccup->context bt/tick)
@@ -49,7 +49,7 @@
 (deftest with-enter-event+state-test
   (let [tree (-> [:sequence
                   [:update {:func (bt/bb-assocer-in [:val] 0)}]
-                  [sm/state-machine [:sm] :start
+                  [sm/make [:sm] :start
                    [sm/state :start
                     [sm/events
                      [sm/event :advance (sm/transition :end)]]]
@@ -76,26 +76,3 @@
     (is (= :real-end (-> tree advance advance stop get-state)))
     (is (= 1 (-> tree advance noop bt/bb-get :val)))))
 
-#_[:sequence
-   [:update {:func (bt/bb-assocer-in [:val] 0)}]
-   [sm/state-machine [:sm] :start
-    (sm/state :start (sm/event :advance (sm/transition :end)))
-    [sm/on-enter [:update {:func #(do (log "yoh")
-                                      (bt/bb-update-in % [:val] inc))}]
-     [sm/state :end
-      (sm/event :advance (sm/transition :end))
-      (sm/event :noop [:update {:func identity}])]]]]
-
-#_(log (h/prepare [sm/state-machine [:sm] :green
-                   [sm/on-enter [:sequence
-                                 [:timer {:timer :traffic-light :duration 50000 :wait? true}]
-                                 [sm/transition :yellow]]
-                    [sm/state :green]]
-                   [sm/on-enter [:sequence
-                                 [:timer {:timer :traffic-light :duration 10000 :wait? true}]
-                                 [sm/transition :red]]
-                    [sm/state :yellow]]
-                   [sm/on-enter [:sequence
-                                 [:timer {:timer :traffic-light :duration 60000 :wait? true}]
-                                 [sm/transition :green]]
-                    [sm/state :red]]]))

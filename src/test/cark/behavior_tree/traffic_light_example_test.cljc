@@ -47,7 +47,7 @@
 ;; same thing with a state machine
 
 (defn traffic-light-3 []
-  (-> [sm/state-machine [:sm] :green
+  (-> [sm/make [:sm] :green
        [sm/state :green
         [:sequence
          [:timer {:timer :traffic-light :duration 50000 :wait? true}]

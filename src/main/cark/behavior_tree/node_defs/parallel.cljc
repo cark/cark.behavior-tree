@@ -7,6 +7,10 @@
             [cark.behavior-tree.hiccup.spec :as hs]
             [clojure.spec.alpha :as s]))
 
+(defn log [value]
+  (tap> value)
+  value)
+
 (s/def ::policy (s/or :select #(= % :select)
                       :sequence #(= % :sequence)
                       :values ::values))

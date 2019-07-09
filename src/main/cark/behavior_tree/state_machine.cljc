@@ -12,7 +12,7 @@
 (defn- in-state? [name]
   [:predicate {:func #(= (bt/bb-get-in % (get-path %)) name)}])
 
-(defn state-machine [path initial-state & states]
+(defn make [path initial-state & states]
   [:bind {:let [::path (vec path)]}
    [:sequence
     [:update {:func #(bt/bb-update % assoc-in (get-path %) initial-state)}]

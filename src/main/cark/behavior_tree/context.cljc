@@ -55,12 +55,15 @@
 (defn tick [ctx node-id]
   (case (db/get-node-status ctx node-id)
     (:fresh :running) (if (::tracing ctx)
-                        (do
-                          (log (apply str (concat (repeat (::trace-depth ctx) "  ")
-                                                  [node-id (:tag (tree/get-node-meta ctx node-id)) ":"
-                                                   (db/get-node-status ctx node-id)] )))
-                          (-> ((tree/get-node ctx node-id) (-> ctx (update ::trace-depth inc) inc-tick-count) nil)
-                              (update ::trace-depth dec)))
+                        (let [string (apply str (concat (repeat (::trace-depth ctx) "  ")
+                                                        [node-id (:tag (tree/get-node-meta ctx node-id)) ":"
+                                                         (db/get-node-status ctx node-id)]))
+                              _ (log string)
+                              ctx (-> ((tree/get-node ctx node-id) (-> ctx (update ::trace-depth inc) inc-tick-count) nil)
+                                      (update ::trace-depth dec))
+                              string (str string "->"(db/get-node-status ctx node-id))]
+                          (log string)
+                          ctx)
                         ((tree/get-node ctx node-id) (inc-tick-count ctx) nil))
     (:success :failure) (if (::tracing ctx)
                           (do (log (apply str (concat (repeat (::trace-depth ctx) "  ")
