@@ -18,12 +18,20 @@
     (throw (ex-info "Some events were not consumed." {:events (-> ctx event/get-events-in)}))
     ctx))
 
-(defn tick [ctx]
-  (let [id (tree/get-root-node-id ctx)]
-    (-> (ctx/reset-tick-count ctx)
-        event/clear-events-out
-        (ctx/tick id)
-        check-no-in-events-left)))
+(defn tick
+  ([ctx]
+   (tick ctx #?(:cljs (js/Date.now)
+                :clj (System/currentTimeMillis))))
+  ([ctx time]
+   (let [id (tree/get-root-node-id ctx)]
+     (-> (ctx/reset-tick-count ctx)
+         event/clear-events-out
+         (ctx/set-time time)
+         (ctx/tick id)
+         check-no-in-events-left))))
+
+(defn tick+ [ctx duration]
+  (tick ctx (+ (ctx/get-time ctx) duration)))
 
 (defn get-status [ctx]
   (db/get-node-status ctx (tree/get-root-node-id ctx)))
@@ -100,3 +108,9 @@
    (send-event ctx name nil))
   ([ctx name arg]
    (event/add-event-in ctx name arg)))
+
+(defn extract-db [ctx]
+  (db/extract ctx))
+
+(defn merge-db [ctx db]
+  (merge ctx db))

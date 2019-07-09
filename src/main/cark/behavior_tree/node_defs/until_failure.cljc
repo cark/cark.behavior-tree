@@ -17,7 +17,7 @@
        (case child-status
          :failure (-> (db/set-node-status ctx id :success)
                       (ctx/set-node-status child-id :fresh))
-         :success (recur (ctx/set-node-status child-id :fresh) arg)
+         :success (recur (ctx/set-node-status ctx child-id :fresh) arg)
          :running (db/set-node-status ctx id :running))))
    tree])
 

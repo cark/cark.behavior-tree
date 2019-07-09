@@ -465,3 +465,82 @@
   (is (= :running (-> [:until-failure [:inverter [:tick-eater {:count 1}]]] bt/hiccup->context bt/tick bt/get-status)))
   (is (= :success (-> [:until-failure [:inverter [:tick-eater {:count 1}]]] bt/hiccup->context bt/tick bt/tick bt/get-status))))
 
+(deftest timer-no-name-test
+  (is (= :running (-> [:timer {:duration 5}] bt/hiccup->context (bt/tick 0) bt/get-status)))
+  (is (= :running (-> [:timer {:duration 5}] bt/hiccup->context (bt/tick 0) (bt/tick 4) bt/get-status)))
+  (is (= :success (-> [:timer {:duration 5}] bt/hiccup->context (bt/tick 0) (bt/tick 5) bt/get-status)))
+  (is (= [[:a nil]] (-> [:sequence
+                         [:timer {:duration 5}]
+                         [:send-event {:event :a}]
+                         [:timer {:duration 5}]
+                         [:send-event {:event :b}]
+                         [:timer {:duration 5}]
+                         [:send-event {:event :c}]]
+                        bt/hiccup->context (bt/tick 0) (bt/tick 15) bt/get-events))))
+
+(deftest named-timer-test
+  (is (= :running (-> [:timer {:timer :foo
+                               :duration 5}]
+                      bt/hiccup->context (bt/tick 0) bt/get-status)))
+  (is (= :running (-> [:timer {:timer :foo
+                               :duration 5}]
+                      bt/hiccup->context (bt/tick 0) (bt/tick 4) bt/get-status)))
+  (is (= :success (-> [:timer {:timer :foo
+                               :duration 5}]
+                      bt/hiccup->context (bt/tick 0) (bt/tick 5) bt/get-status)))
+  (is (= [[:a nil]
+          [:b nil]
+          [:c nil]]
+         (-> [:sequence
+              [:timer {:timer :foo
+                       :duration 5}]
+              [:send-event {:event :a}]
+              [:timer {:timer :foo
+                       :duration 5}]
+              [:send-event {:event :b}]
+              [:timer {:timer :foo
+                       :duration 5}]
+              [:send-event {:event :c}]]
+             bt/hiccup->context (bt/tick 0) (bt/tick 15) bt/get-events))))
+
+(deftest always-success-test
+  (is (= :success (-> [:always-success [:success-leaf]]
+                      bt/hiccup->context bt/tick bt/get-status)))
+  (is (= :success (-> [:always-success [:failure-leaf]]
+                      bt/hiccup->context bt/tick bt/get-status)))
+  (is (= :running (-> [:always-success [:tick-eater {:count 1}]]
+                      bt/hiccup->context bt/tick bt/get-status)))
+  (is (= :success (-> [:always-success [:tick-eater {:count 1}]]
+                      bt/hiccup->context bt/tick bt/tick bt/get-status)))
+  (is (= :success (-> [:always-success [:inverter [:tick-eater {:count 1}]]]
+                      bt/hiccup->context bt/tick bt/tick bt/get-status))))
+
+(deftest always-failure-test
+  (is (= :failure (-> [:always-failure [:success-leaf]]
+                      bt/hiccup->context bt/tick bt/get-status)))
+  (is (= :failure (-> [:always-failure [:failure-leaf]]
+                      bt/hiccup->context bt/tick bt/get-status)))
+  (is (= :running (-> [:always-failure [:tick-eater {:count 1}]]
+                      bt/hiccup->context bt/tick bt/get-status)))
+  (is (= :failure (-> [:always-failure [:tick-eater {:count 1}]]
+                      bt/hiccup->context bt/tick bt/tick bt/get-status)))
+  (is (= :failure (-> [:always-failure [:inverter [:tick-eater {:count 1}]]]
+                      bt/hiccup->context bt/tick bt/tick bt/get-status))))
+
+(deftest map-test
+  (is (= :success (-> [:map {:seq [1 2 3] :bind-item :item}
+                       [:success-leaf]]
+                      bt/hiccup->context bt/tick bt/get-status)))
+  (is (= :failure (-> [:map {:seq [1 2 3] :bind-item :item}
+                       [:failure-leaf]]
+                      bt/hiccup->context bt/tick bt/get-status)))
+  (is (= :success (-> [:sequence
+                       [:update {:func (bt/bb-setter (list))}]
+                       [:map {:seq [1 2 3] :bind-item :item}
+                        [:update {:func #(bt/bb-update % conj (bt/get-var % :item))}]]]
+                      bt/hiccup->context bt/tick bt/get-status)))
+  (is (= [3 2 1] (-> [:sequence
+                      [:update {:func (bt/bb-setter (list))}]
+                      [:map {:seq [1 2 3] :bind-item :item}
+                       [:update {:func #(bt/bb-update % conj (bt/get-var % :item))}]]]
+                     bt/hiccup->context bt/tick bt/bb-get))))

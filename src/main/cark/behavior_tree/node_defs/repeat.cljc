@@ -47,7 +47,7 @@
                       (let [ctx (ctx/tick ctx child-id)]
                         (case (db/get-node-status ctx child-id)
                           (:success :failure) (recur (ctx/set-node-status ctx child-id :fresh) arg)
-                          :running (ctx/set-node-status ctx child-id :fresh)))
+                          :running ctx))
                       (db/set-node-status ctx id :success)))))
      tree]))
 

@@ -16,7 +16,11 @@
             [cark.behavior-tree.node-defs.guard-selector :as guard-selector]
             [cark.behavior-tree.node-defs.repeat :as repeat]
             [cark.behavior-tree.node-defs.until-success :as until-success]
-            [cark.behavior-tree.node-defs.until-failure :as until-failure]))
+            [cark.behavior-tree.node-defs.until-failure :as until-failure]
+            [cark.behavior-tree.node-defs.timer :as timer]
+            [cark.behavior-tree.node-defs.always-success :as always-success]
+            [cark.behavior-tree.node-defs.always-failure :as always-failure]
+            [cark.behavior-tree.node-defs.map :as map]))
 
 (defn register []
   (success-leaf/register)
@@ -36,4 +40,8 @@
   (guard-selector/register)
   (repeat/register)
   (until-success/register)
-  (until-failure/register))
+  (until-failure/register)
+  (timer/register)
+  (always-success/register)
+  (always-failure/register)
+  (map/register)) 
