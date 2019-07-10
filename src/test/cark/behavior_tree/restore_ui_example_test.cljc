@@ -10,7 +10,7 @@
 ;; - first a confirmation dialog will open
 ;; - restore button is grayed out
 ;; - the dialog cancel button makes the confirm dialog disapear
-;; - the dialog's ok button will start the open file dialog
+;; - the dialog's confirm button will start the open file dialog
 ;; - html5 only gives a result when the user selects a file, not when he
 ;; cancels the open file dialog,we need to work around this
 ;; - when we have the file data, we close the confirmation dialog and send a restore event

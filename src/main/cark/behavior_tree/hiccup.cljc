@@ -6,24 +6,12 @@
             [cark.behavior-tree.hiccup.spec :as hs]))
 
 (defn prepare [hiccup]
-  (let [prepare (fn prepare [hiccup]
-                  (let [[tag & rest-forms] hiccup
-                        splice-in (fn [target children]
-                                    (reduce (fn [result child]
-                                              (let [[first & rest :as child] (prepare child)]
-                                                (if (= :<> first)
-                                                  (into result rest)
-                                                  (conj result child))))
-                                            target children))]
-                    (if (fn? tag)
-                      (prepare (apply tag rest-forms))                      
-                      (if (map? (first rest-forms))
-                        (splice-in [tag (first rest-forms)] (rest rest-forms))
-                        (splice-in [tag] rest-forms)))))
-        result (prepare hiccup)]
-    (if (= :<> (first result))
-      (throw (ex-info "Cannot have a splice tag at the root" {}))
-      result)))
+  (let [[tag & rest-h] hiccup
+        [params rest-h] (if (map? (first rest-h))
+                          [(first rest-h) (rest rest-h)]
+                          [{} rest-h])]
+    (into [tag params] (->> rest-h (filter identity) (map prepare)))))
+
 
 (defn parse
   "Parses an hiccup behavior tree, returning the parse tree"

@@ -588,19 +588,19 @@
               [:success-leaf]]
              bt/hiccup->context bt/tick bt/get-events)))) 
 
-(deftest hiccup-func-call-test
-  (is (= [:inverter [:success-leaf]] (h/prepare [:inverter [:success-leaf]])))
-  (is (= [:inverter [:success-leaf]] (h/prepare [:inverter [(fn [] [:success-leaf])]])))
-  (is (= [:sequence [:success-leaf] [:success-leaf]]
-         (h/prepare [:sequence [:<> [:success-leaf] [:success-leaf]]])))
-  (is (= [:sequence [:success-leaf] [:success-leaf]]
-         (h/prepare [:sequence [(fn [] [:<> [:success-leaf] [:success-leaf]])]])))
-  (is (= [:sequence [:success-leaf] [:success-leaf]]
-         (h/prepare [:sequence [(fn [n] (into [:<>] (repeat n [:success-leaf]))) 2]])))
-  (is (= [:inverter [:success-leaf]] (h/prepare [:inverter [(fn [] [(fn [] [:success-leaf])])]])))
-  (is-thrown? #(h/prepare [:<> [:success-leaf]]))
-  
-  (is (= :failure (-> [:inverter [:success-leaf]] bt/hiccup->context bt/tick bt/get-status)))
-  (is (= :failure (-> [:inverter [(fn [_] [:success-leaf]) 12]] bt/hiccup->context bt/tick bt/get-status)))
-  (is (= :success (-> [:sequence [(fn [] [:<> [:success-leaf] [:success-leaf]])]] bt/hiccup->context bt/tick bt/get-status)))
-  (is (= 3 (-> [:sequence [(fn [] [:<> [:success-leaf] [:success-leaf]])]] bt/hiccup->context bt/tick ctx/get-tick-count))))
+;; (deftest hiccup-func-call-test
+;;   (is (= [:inverter [:success-leaf]] (h/prepare [:inverter [:success-leaf]])))
+;;   (is (= [:inverter [:success-leaf]] (h/prepare [:inverter [(fn [] [:success-leaf])]])))
+;;   (is (= [:sequence [:success-leaf] [:success-leaf]]
+;;          (h/prepare [:sequence [:<> [:success-leaf] [:success-leaf]]])))
+;;   (is (= [:sequence [:success-leaf] [:success-leaf]]
+;;          (h/prepare [:sequence [(fn [] [:<> [:success-leaf] [:success-leaf]])]])))
+;;   (is (= [:sequence [:success-leaf] [:success-leaf]]
+;;          (h/prepare [:sequence [(fn [n] (into [:<>] (repeat n [:success-leaf]))) 2]])))
+;;   (is (= [:inverter [:success-leaf]] (h/prepare [:inverter [(fn [] [(fn [] [:success-leaf])])]])))
+;;   (is-thrown? #(h/prepare [:<> [:success-leaf]]))
+
+;;   (is (= :failure (-> [:inverter [:success-leaf]] bt/hiccup->context bt/tick bt/get-status)))
+;;   (is (= :failure (-> [:inverter [(fn [_] [:success-leaf]) 12]] bt/hiccup->context bt/tick bt/get-status)))
+;;   (is (= :success (-> [:sequence [(fn [] [:<> [:success-leaf] [:success-leaf]])]] bt/hiccup->context bt/tick bt/get-status)))
+;;   (is (= 3 (-> [:sequence [(fn [] [:<> [:success-leaf] [:success-leaf]])]] bt/hiccup->context bt/tick ctx/get-tick-count))))

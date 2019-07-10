@@ -56,7 +56,9 @@
   (case (db/get-node-status ctx node-id)
     (:fresh :running) (if (::tracing ctx)
                         (let [string (apply str (concat (repeat (::trace-depth ctx) "  ")
-                                                        [node-id (:tag (tree/get-node-meta ctx node-id)) ":"
+                                                        [node-id (:tag (tree/get-node-meta ctx node-id))
+                                                         (if-let [id (:id (:params (tree/get-node-meta ctx node-id)))]
+                                                           (str "[" id "]")) ":"
                                                          (db/get-node-status ctx node-id)]))
                               _ (log string)
                               ctx (-> ((tree/get-node ctx node-id) (-> ctx (update ::trace-depth inc) inc-tick-count) nil)

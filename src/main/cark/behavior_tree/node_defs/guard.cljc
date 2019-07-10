@@ -10,7 +10,7 @@
 (defn compile-node [tree id tag params [predicate-id payload-id]]
   [(fn guard-tick [ctx arg]
      (case (db/get-node-status ctx id)        
-       :fresh (recur (db/set-node-status ctx id :running) arg)
+       :fresh (recur (db/set-node-status ctx id :running) arg)       
        :running (let [ctx (ctx/tick ctx predicate-id)]
                   (case (db/get-node-status ctx predicate-id)
                     :running (throw (ex-info "Guard predicate must succeed or fail in a single tick" {}))

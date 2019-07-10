@@ -1,6 +1,7 @@
 (ns cark.behavior-tree.state-machine
   (:require [cark.behavior-tree.core :as bt]
-            [cark.behavior-tree.hiccup :as hiccup]))
+            [cark.behavior-tree.hiccup :as hiccup]
+            [cark.behavior-tree.event :as event]))
 
 (defn log [value]
   (tap> value)
@@ -10,47 +11,53 @@
   (into (bt/get-var node ::path) rest))
 
 (defn- in-state? [name]
-  [:predicate {:func #(= (bt/bb-get-in % (get-path %)) name)}])
+  [:predicate {:func #(= (bt/bb-get-in % (get-path %)) name)
+               :wait? true}])
 
 (defn make [path initial-state & states]
   [:bind {:let [::path (vec path)]}
    [:sequence
     [:update {:func #(bt/bb-update % assoc-in (get-path %) initial-state)}]
-    [:until-failure
-     (into [:parallel {:policy :select}] states)]]])
+    [:always-success (into [:parallel {:policy :sequence :rerun-children true}] states)]]])
 
 (defn end-state
   ([name]
-   [:guard (in-state? name)
+   [:sequence {:id name} (in-state? name)
     [:failure-leaf]])
   ([name node]
-   [:guard (in-state? name)
-    [:sequence node [:failure-leaf]]]))
+   [:sequence {:id name} (in-state? name)
+    node [:failure-leaf]]))
+
+(defn event [name node]
+  [:event name node])
+
+(defn enter-event [node]
+  [:enter-event nil node])
 
 (defn state
-  ([name node-or-events]
-   [:guard (in-state? name) [:always-success node-or-events]])
-  ([name node events]
-   [:guard (in-state? name) [:sequence [:always-success node] events]]))
-
-(defn events [& events]
-  [:until-failure
-   (into [:parallel {:policy {:success 1 :failure 1}}] events)])
-
-(defn on-enter [node state]
-  (let [[_ pred pl] (hiccup/prepare state)]
-    [:guard pred [:sequence [:always-success node] pl]]))
+  ([name & events]
+   (let [{:keys [event enter-event]} (group-by first events)
+         make-event (fn [[_ name node]]
+                      [:on-event {:event name :bind-arg ::event-arg :wait? true :id name}
+                       node])
+         events [:until-failure {:id :events-loop}
+                 (into [:parallel {:policy :sequence}]
+                       (map make-event event))]
+         enter-event (if enter-event
+                       (if (> (count enter-event) 1)
+                         (throw (ex-info "Only one enter-event per state allowed" {}))                         
+                         (nth (first enter-event) 2))
+                       nil)]
+     [:sequence {:id [:state name]}
+      (in-state? name)
+      (when enter-event
+        enter-event)
+      events])))
 
 (defn event-arg [ctx]
   (bt/get-var ctx ::event-arg))
-
-(defn event [name node]
-  [:on-event {:event name :bind-arg ::event-arg :wait? true}
-   node])
 
 (defn transition [new-state]
   [:sequence
    [:update {:func #(bt/bb-update % assoc-in (get-path %) new-state)}]
    [:failure-leaf]])
-
-

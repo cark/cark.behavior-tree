@@ -46,33 +46,34 @@
 
 ;; same thing with a state machine
 
-(defn traffic-light-3 []
-  (-> [sm/make [:sm] :green
-       [sm/state :green
-        [:sequence
-         [:timer {:timer :traffic-light :duration 50000 :wait? true}]
-         [sm/transition :yellow]]]
-       [sm/state :yellow
-        [:sequence
-         [:timer {:timer :traffic-light :duration 10000 :wait? true}]
-         [sm/transition :red]]]
-       [sm/state :red
-        [:sequence
-         [:timer {:timer :traffic-light :duration 60000 :wait? true}]
-         [sm/transition :green]]]]
-      bt/hiccup->context (bt/tick 0)))
 
-(deftest traffic-light-3-test
-  (let [get-state (bt/bb-getter-in [:sm])]
-    (is (-> (traffic-light-3)))
-    (is (= :green (-> (traffic-light-3) get-state)))
-    (is (= :yellow (-> (traffic-light-3) (bt/tick+ 50000) get-state)))
-    (is (= :running (-> (traffic-light-3) (bt/tick+ 50000) bt/get-status)))
-    (is (= :red (-> (traffic-light-3) (bt/tick+ 50000) (bt/tick+ 10000) get-state)))
-    (is (= :green (-> (traffic-light-3) (bt/tick+ 50000) (bt/tick+ 10000) (bt/tick+ 60000) get-state)))
+;; (defn traffic-light-3 []
+;;   (-> [sm/make [:sm] :green
+;;        [sm/state :green
+;;         [:sequence
+;;          [:timer {:timer :traffic-light :duration 50000 :wait? true}]
+;;          [sm/transition :yellow]]]
+;;        [sm/state :yellow
+;;         [:sequence
+;;          [:timer {:timer :traffic-light :duration 10000 :wait? true}]
+;;          [sm/transition :red]]]
+;;        [sm/state :red
+;;         [:sequence
+;;          [:timer {:timer :traffic-light :duration 60000 :wait? true}]
+;;          [sm/transition :green]]]]
+;;       bt/hiccup->context (bt/tick 0)))
 
-    (is (= :red (-> (traffic-light-3) (bt/tick+ 60000) get-state)))
-    (is (= :green (-> (traffic-light-3) (bt/tick+ 120000) get-state)))))
+;; (deftest traffic-light-3-test
+;;   (let [get-state (bt/bb-getter-in [:sm])]
+;;     (is (-> (traffic-light-3)))
+;;     (is (= :green (-> (traffic-light-3) get-state)))
+;;     (is (= :yellow (-> (traffic-light-3) (bt/tick+ 50000) get-state)))
+;;     (is (= :running (-> (traffic-light-3) (bt/tick+ 50000) bt/get-status)))
+;;     (is (= :red (-> (traffic-light-3) (bt/tick+ 50000) (bt/tick+ 10000) get-state)))
+;;     (is (= :green (-> (traffic-light-3) (bt/tick+ 50000) (bt/tick+ 10000) (bt/tick+ 60000) get-state)))
+
+;;     (is (= :red (-> (traffic-light-3) (bt/tick+ 60000) get-state)))
+;;     (is (= :green (-> (traffic-light-3) (bt/tick+ 120000) get-state)))))
 
 ;; We define a crossroad with 2 traffic light controllers
 ;; the :ns north-south controller and the :we west-east controller
@@ -91,8 +92,8 @@
 
 (defn crossroad []
   (-> [:parallel
-       [make-traffic-light :we 60000] ;;using the hiccup function call syntax here
-       [make-traffic-light :ns 0]]
+       (make-traffic-light :we 60000) ;;using the hiccup function call syntax here
+       (make-traffic-light :ns 0)]
       bt/hiccup->context (bt/tick 0) (bt/tick+ 60000)))
 
 (deftest crossroad-test
