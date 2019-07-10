@@ -78,64 +78,97 @@
                      ([ctx event]
                       (send-event ctx event nil))
                      ([ctx event arg]
-                      (-> (bt/send-event ctx event arg) bt/tick)))]
+                      (-> (bt/send-event ctx event arg) bt/tick)))
+        send-events (fn send-events [ctx & events]
+                      (reduce #(apply send-event %1 %2)
+                              ctx (map #(if (seqable? %) % [%]) events)))]
     (is ctx)
-    (is (-> ctx (bt/bb-get-in [:restore-button])))
-    (is (= :running (-> ctx (send-event :restore-pressed) bt/get-status)))
-    (is (not (-> ctx (send-event :restore-pressed) (bt/bb-get-in [:restore-button]))))
-    (is (-> ctx (send-event :restore-pressed) (bt/bb-get-in [:confirm-dialog])))
-    (is (not (-> ctx (send-event :restore-pressed) (send-event :cancel-pressed) (bt/bb-get-in [:confirm-dialog]))))
-    (is (-> ctx (send-event :restore-pressed) (send-event :cancel-pressed) (bt/bb-get-in [:restore-button])))
-    (is (not (-> ctx (send-event :restore-pressed) (send-event :cancel-pressed) (send-event :restore-pressed)
-                 (bt/bb-get-in [:restore-button]))))
-    (is (-> ctx (send-event :restore-pressed) (send-event :cancel-pressed) (send-event :restore-pressed)
-            (bt/bb-get-in [:confirm-dialog])))
-    (is (-> ctx (send-event :restore-pressed) (send-event :confirm-pressed) (bt/bb-get-in [:confirm-dialog])))
-    (is (= [[:open-file-dialog nil]] (-> ctx (send-event :restore-pressed) (send-event :confirm-pressed) bt/get-events)))
-    (is (= [[:open-file-dialog nil]] (-> ctx (send-event :restore-pressed)
-                                         (send-event :confirm-pressed) (send-event :confirm-pressed)
-                                         bt/get-events)))
-    (is (not (-> ctx (send-event :restore-pressed) (send-event :confirm-pressed) (send-event :cancel-pressed)
-                 (bt/bb-get-in [:confirm-dialog]))))
-    (is (-> ctx (send-event :restore-pressed) (send-event :confirm-pressed) (send-event :cancel-pressed)
-            (bt/bb-get-in [:restore-button])))
-    (is (= [[:restore-file :some-data]]
-           (-> ctx (send-event :restore-pressed) (send-event :confirm-pressed) (send-event :got-file-data :some-data)
-               bt/get-events)))
-    (is (not (-> ctx (send-event :restore-pressed) (send-event :confirm-pressed) (send-event :got-file-data :some-data)
-                 (bt/bb-get-in [:confirm-dialog]))))
-    (is (-> ctx (send-event :restore-pressed) (send-event :confirm-pressed) (send-event :got-file-data :some-data)
-            (bt/bb-get-in [:restoring-dialog])))
     
-    (is (not (-> ctx (send-event :restore-pressed) (send-event :confirm-pressed) (send-event :got-file-data :some-data)
-                 (send-event :restore-result :success) (bt/bb-get-in [:restoring-dialog]))))
-    (is (-> ctx (send-event :restore-pressed) (send-event :confirm-pressed) (send-event :got-file-data :some-data)
-            (send-event :restore-result :success) (bt/bb-get-in [:success-dialog])))
-    (is (not (-> ctx (send-event :restore-pressed) (send-event :confirm-pressed) (send-event :got-file-data :some-data)
-                 (send-event :restore-result :success) (bt/bb-get-in [:error-dialog]))))
-    (is (-> ctx (send-event :restore-pressed) (send-event :confirm-pressed) (send-event :got-file-data :some-data)
-            (send-event :restore-result :success) (bt/bb-get-in [:restore-button])))
+    (is (-> ctx (bt/bb-get-in [:restore-button])))
+    
+    (is (= :running (-> (send-events ctx :restore-pressed)
+                        bt/get-status)))
+    
+    (is (not (-> (send-events ctx :restore-pressed)
+                 (bt/bb-get-in [:restore-button]))))
+    
+    (is (-> (send-events ctx :restore-pressed)
+            (bt/bb-get-in [:confirm-dialog])))
+    
+    (is (not (-> (send-events ctx :restore-pressed :cancel-pressed)
+                 (bt/bb-get-in [:confirm-dialog]))))
+    
+    (is (-> (send-events ctx :restore-pressed :cancel-pressed)
+            (bt/bb-get-in [:restore-button])))
+    
+    (is (not (-> (send-events ctx :restore-pressed :cancel-pressed :restore-pressed)
+                 (bt/bb-get-in [:restore-button]))))
+    
+    (is (-> (send-events ctx :restore-pressed :cancel-pressed :restore-pressed)
+            (bt/bb-get-in [:confirm-dialog])))
+    
+    (is (-> (send-events ctx :restore-pressed :confirm-pressed)
+            (bt/bb-get-in [:confirm-dialog])))
+    
+    (is (= [[:open-file-dialog nil]]
+           (-> (send-events ctx :restore-pressed :confirm-pressed)
+               bt/get-events)))
+    
+    (is (= [[:open-file-dialog nil]]
+           (-> (send-events ctx :restore-pressed :confirm-pressed :confirm-pressed)
+               bt/get-events)))
+    
+    (is (not (-> (send-events ctx :restore-pressed :confirm-pressed :cancel-pressed)
+                 (bt/bb-get-in [:confirm-dialog]))))
+    
+    (is (-> (send-events ctx :restore-pressed :confirm-pressed :cancel-pressed)
+            (bt/bb-get-in [:restore-button])))
 
-    (is (not (-> ctx (send-event :restore-pressed) (send-event :confirm-pressed) (send-event :got-file-data :some-data)
-                 (send-event :restore-result :error) (bt/bb-get-in [:restoring-dialog]))))
-    (is (-> ctx (send-event :restore-pressed) (send-event :confirm-pressed) (send-event :got-file-data :some-data)
-            (send-event :restore-result :error) (bt/bb-get-in [:error-dialog])))
-    (is (not (-> ctx (send-event :restore-pressed) (send-event :confirm-pressed) (send-event :got-file-data :some-data)
-                 (send-event :restore-result :error) (bt/bb-get-in [:success-dialog]))))
-    (is (-> ctx (send-event :restore-pressed) (send-event :confirm-pressed) (send-event :got-file-data :some-data)
-            (send-event :restore-result :success) (bt/bb-get-in [:restore-button])))
+    (let [ctx (send-events ctx :restore-pressed :confirm-pressed [:got-file-data :some-data])]
+      ;; this new context has received file data
+      
+      (is (= [[:restore-file :some-data]]
+             (-> ctx bt/get-events)))
+      
+      (is (not (-> ctx (bt/bb-get-in [:confirm-dialog]))))
+      
+      (is (-> ctx (bt/bb-get-in [:restoring-dialog])))
+      
+      (is (not (-> (send-events ctx [:restore-result :success])
+                   (bt/bb-get-in [:restoring-dialog]))))
+      
+      (is (-> (send-events ctx [:restore-result :success])
+              (bt/bb-get-in [:success-dialog])))
+      
+      (is (not (-> (send-events ctx [:restore-result :success])
+                   (bt/bb-get-in [:error-dialog]))))
+      
+      (is (-> (send-events ctx [:restore-result :success])
+              (bt/bb-get-in [:restore-button])))
 
-    (is (not (-> ctx (send-event :restore-pressed) (send-event :confirm-pressed) (send-event :got-file-data :some-data)
-                 (send-event :restore-result :success) (send-event :ok-pressed) (bt/bb-get-in [:success-dialog]))))
-    (is (not (-> ctx (send-event :restore-pressed) (send-event :confirm-pressed) (send-event :got-file-data :some-data)
-                 (send-event :restore-result :error) (send-event :ok-pressed) (bt/bb-get-in [:error-dialog]))))
+      (is (not (-> (send-events ctx [:restore-result :error])
+                   (bt/bb-get-in [:restoring-dialog]))))
+      
+      (is (-> (send-events ctx [:restore-result :error])
+              (bt/bb-get-in [:error-dialog])))
+      
+      (is (not (-> (send-events ctx [:restore-result :error])
+                   (bt/bb-get-in [:success-dialog]))))
+      
+      (is (-> (send-events ctx [:restore-result :success])
+              (bt/bb-get-in [:restore-button])))
 
-    (is (not (-> ctx (send-event :restore-pressed) (send-event :confirm-pressed) (send-event :got-file-data :some-data)
-                 (send-event :restore-result :error) (send-event :restore-pressed) (bt/bb-get-in [:restore-button]))))
-    (is (-> ctx (send-event :restore-pressed) (send-event :confirm-pressed) (send-event :got-file-data :some-data)
-            (send-event :restore-result :error) (send-event :restore-pressed) (bt/bb-get-in [:confirm-dialog])))
+      (is (not (-> (send-events ctx [:restore-result :success] :ok-pressed)
+                   (bt/bb-get-in [:success-dialog]))))
+      
+      (is (not (-> (send-events ctx [:restore-result :error] :ok-pressed)
+                   (bt/bb-get-in [:error-dialog]))))
 
-    (is (not (-> ctx (send-event :restore-pressed) (send-event :confirm-pressed) (send-event :got-file-data :some-data)
-                 (send-event :restore-result :error) (send-event :restore-pressed) (bt/bb-get-in [:error-dialog]))))))
+      (is (not (-> (send-events ctx [:restore-result :error] :restore-pressed)
+                   (bt/bb-get-in [:restore-button]))))
+      
+      (is (-> (send-events ctx [:restore-result :error] :restore-pressed)
+              (bt/bb-get-in [:confirm-dialog])))
 
-
+      (is (not (-> (send-events ctx [:restore-result :error] :restore-pressed)
+                   (bt/bb-get-in [:error-dialog])))))))
