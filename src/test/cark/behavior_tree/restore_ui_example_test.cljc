@@ -19,49 +19,60 @@
 ;; - success : open a success dialog having an ok button, activate restore button
 ;; - failure : open a failure dialog having an ok button, activate restore button
 ;;
-;; This would usually be developped bottom up, step by step, with testing along the way
-;; but i felt adventurous on this one, and it was harder than it should have been.
-;; Better workflow can be seen in the change control example.
+;; This would usually be developped bottom up, step by step, with testing along the way,
+;; but i felt adventurous on this one.
 
 (deftest restore-test
-  (let [end-dialog (fn [result dialog]
-                     [:always-failure
-                      [:guard [:predicate {:func #(= (bt/get-var % :result) result)}]
-                       [:sequence
-                        [:update {:func (bt/bb-updater assoc dialog true)}]
-                        [:on-event {:event :ok-pressed :wait? true}
-                         [:update {:func (bt/bb-updater assoc dialog false)}]]]]])
-        ctx (-> [:repeat
-                 [:sequence
-                  [:update {:func (bt/bb-updater assoc :restore-button true)}]
-                  [:on-event {:event :restore-pressed :wait? true}
-                   [:repeat
-                    [:sequence
-                     [:update {:func (bt/bb-updater assoc :restore-button false :confirm-dialog true)}]
-                     [:parallel {:policy {:success :some :failure :some}}
-                      ;; no confirmation
-                      [:on-event {:event :cancel-pressed :wait? true}
-                       [:sequence
-                        [:update {:func (bt/bb-updater assoc :confirm-dialog false :restore-button true)}]
-                        [:consume-event {:event :restore-pressed :wait? true}]
-                        [:failure-leaf]]]
-                      ;; html5 workaround loop
-                      [:until-success 
-                       [:on-event {:event :confirm-pressed :wait? true}
-                        [:sequence
-                         [:send-event {:event :open-file-dialog}]
-                         [:on-event {:event :got-file-data :bind-arg :file-data :wait? true}
-                          [:send-event {:event :restore-file :arg (bt/var-getter :file-data)}]]
-                         [:update {:func (bt/bb-updater assoc :confirm-dialog false :restoring-dialog true)}]]]]]
-                     ;; manage restore result then loop
-                     [:on-event {:event :restore-result :bind-arg :result :wait? true}
-                      [:sequence                       
-                       [:update {:func (bt/bb-updater assoc :restore-button true :restoring-dialog false)}]
-                       [:parallel {:policy :select}
-                        [end-dialog :success :success-dialog]
-                        [end-dialog :error :error-dialog]
-                        [:on-event {:event :restore-pressed :wait? true}
-                         [:update {:func (bt/bb-updater assoc :success-dialog false :error-dialog false)}]]]]]]]]]]
+  (let [ctx (-> [:sequence
+                 ;;init
+                 [:update {:func (bt/bb-updater assoc
+                                                :restore-button true
+                                                :confirm-dialog false
+                                                :restoring-dialog false
+                                                :success-dialog false
+                                                :error-dialog false)}]
+                 ;;keep running
+                 [:parallel {:policy {:success :every :failure :every} :rerun-children true}
+                  ;; the start point, checking the restore button
+                  [:guard [:predicate {:func (bt/bb-getter-in [:restore-button])}]
+                   [:on-event {:event :restore-pressed :wait? true}
+                    [:update {:func (bt/bb-updater assoc
+                                                   :restore-button false
+                                                   :confirm-dialog true
+                                                   :success-dialog false
+                                                   :error-dialog false)}]]]
+                  ;; confirm dialog
+                  [:guard [:predicate {:func (bt/bb-getter-in [:confirm-dialog])}]
+                   [:parallel {:policy :select :rerun-children true} ;; we have to rerun to work around the html5 spec bug
+                    [:on-event {:event :cancel-pressed :wait? true}
+                     [:update {:func (bt/bb-updater assoc
+                                                    :restore-button true
+                                                    :confirm-dialog false)}]]
+                    [:on-event {:event :confirm-pressed :wait? true}
+                     [:send-event {:event :open-file-dialog}]]]]
+                  ;; got file data
+                  [:on-event {:event :got-file-data :bind-arg :file-data
+                              :wait? true}
+                   [:sequence
+                    [:update {:func (bt/bb-updater assoc
+                                                   :confirm-dialog false
+                                                   :restoring-dialog true)}]
+                    [:send-event {:event :restore-file :arg (bt/var-getter :file-data)}]]]
+                  ;; got restore operation result
+                  [:on-event {:event :restore-result :bind-arg :result :wait? true}
+                   [:update {:func #(bt/bb-update % assoc
+                                                  :restoring-dialog false
+                                                  :restore-button true
+                                                  :success-dialog (= :success (bt/get-var % :result))
+                                                  :error-dialog (= :error (bt/get-var % :result)))}]]
+                  ;; success dialog
+                  [:guard [:predicate {:func (bt/bb-getter-in [:success-dialog])}]
+                   [:on-event {:event :ok-pressed :wait? true}
+                    [:update {:func (bt/bb-updater assoc :success-dialog false)}]]]
+                  ;; error dialog
+                  [:guard [:predicate {:func (bt/bb-getter-in [:error-dialog])}]
+                   [:on-event {:event :ok-pressed :wait? true}
+                    [:update {:func (bt/bb-updater assoc :error-dialog false)}]]]]]
                 bt/hiccup->context bt/tick)
         send-event (fn send-event
                      ([ctx event]
@@ -81,6 +92,9 @@
             (bt/bb-get-in [:confirm-dialog])))
     (is (-> ctx (send-event :restore-pressed) (send-event :confirm-pressed) (bt/bb-get-in [:confirm-dialog])))
     (is (= [[:open-file-dialog nil]] (-> ctx (send-event :restore-pressed) (send-event :confirm-pressed) bt/get-events)))
+    (is (= [[:open-file-dialog nil]] (-> ctx (send-event :restore-pressed)
+                                         (send-event :confirm-pressed) (send-event :confirm-pressed)
+                                         bt/get-events)))
     (is (not (-> ctx (send-event :restore-pressed) (send-event :confirm-pressed) (send-event :cancel-pressed)
                  (bt/bb-get-in [:confirm-dialog]))))
     (is (-> ctx (send-event :restore-pressed) (send-event :confirm-pressed) (send-event :cancel-pressed)
@@ -123,4 +137,5 @@
 
     (is (not (-> ctx (send-event :restore-pressed) (send-event :confirm-pressed) (send-event :got-file-data :some-data)
                  (send-event :restore-result :error) (send-event :restore-pressed) (bt/bb-get-in [:error-dialog]))))))
+
 
