@@ -12,7 +12,6 @@
                           [{} rest-h])]
     (into [tag params] (->> rest-h (filter identity) (map prepare)))))
 
-
 (defn parse
   "Parses an hiccup behavior tree, returning the parse tree"
   ([hiccup]
