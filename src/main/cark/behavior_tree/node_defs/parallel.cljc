@@ -22,6 +22,8 @@
 (s/def ::success ::value)
 (s/def ::failure ::value)
 
+(s/def ::rerun-children boolean?)
+
 (defn value-policy-func [kw [type value]]
   (let [filter-func #(= % kw)]
     (case type
@@ -65,11 +67,18 @@
 (defn compile-node [tree id tag params children-ids]
   (let [policy-func (if-let [policy (:policy params)]
                       (parsed-policy->func policy)
-                      (sequence-policy-func))]
+                      (sequence-policy-func))
+        rerun-children (:rerun-children params)]
     [(fn parallel-tick [ctx arg]
        (case (db/get-node-status ctx id)        
          :fresh (recur (db/set-node-status ctx id :running) arg)
-         :running (let [ctx (ctx/do-nodes ctx children-ids #(ctx/tick %1 %2))
+         :running (let [ctx (ctx/do-nodes ctx children-ids #(-> (if rerun-children
+                                                                  (let [status (db/get-node-status %1 %2)]
+                                                                    (if (or (= status :success) (= status :failure))
+                                                                      (ctx/set-node-status %1 %2 :fresh)
+                                                                      %1))
+                                                                  %1)
+                                                                (ctx/tick %2)))
                         children-status (mapv #(db/get-node-status ctx %) children-ids)
                         result-status (policy-func children-status)]
                     (case result-status
@@ -82,6 +91,6 @@
   (type/register
    (bn/branch
     {::type/tag :parallel
-     ::type/params-spec (s/? (s/keys :opt-un [::policy]))
+     ::type/params-spec (s/? (s/keys :opt-un [::policy ::rerun-children]))
      ::type/children-spec (s/+ ::hs/child)
      ::type/compile-func compile-node})))

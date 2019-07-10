@@ -179,6 +179,24 @@
                  [:update {:func #(bt/bb-update % inc)}]]]
                bt/hiccup->context bt/tick bt/bb-get))))
 
+(deftest parallel-rerun-children-test
+  (is (= :running (-> [:parallel {:policy :sequence}
+                       [:update {:func (bt/bb-updater inc)}]
+                       [:predicate {:func #(> (bt/bb-get %) 1) :wait? true}]]
+                      bt/hiccup->context (bt/bb-set 0) bt/tick bt/get-status)))
+  (is (= :running (-> [:parallel {:policy :sequence}
+                       [:update {:func (bt/bb-updater inc)}]
+                       [:predicate {:func #(> (bt/bb-get %) 1) :wait? true}]]
+                      bt/hiccup->context (bt/bb-set 0) bt/tick bt/tick bt/get-status)))
+  (is (= :running (-> [:parallel {:policy :sequence :rerun-children true}
+                       [:update {:func (bt/bb-updater inc)}]
+                       [:predicate {:func #(> (bt/bb-get %) 1) :wait? true}]]
+                      bt/hiccup->context (bt/bb-set 0) bt/tick bt/get-status)))
+  (is (= :success (-> [:parallel {:policy :sequence :rerun-children true}
+                       [:update {:func (bt/bb-updater inc)}]
+                       [:predicate {:func #(> (bt/bb-get %) 1) :wait? true}]]
+                      bt/hiccup->context (bt/bb-set 0) bt/tick bt/tick bt/get-status))))
+
 (deftest send-event-test
   (is (= :success (-> [:send-event {:event :bar}] bt/hiccup->context bt/tick bt/get-status)))
   (is (= [[:bar nil]] (-> [:send-event {:event :bar}] bt/hiccup->context bt/tick bt/get-events)))

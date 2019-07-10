@@ -35,7 +35,7 @@
                         (case (db/get-node-status ctx child-id)
                           :success (recur (-> (db/set-node-data ctx id rest-items)
                                               (ctx/set-node-status child-id :fresh))
-                                          0)
+                                          arg)
                           :failure (-> (db/set-node-status ctx id :failure)
                                        (db/set-node-data id nil)
                                        (ctx/set-node-status child-id :fresh))
