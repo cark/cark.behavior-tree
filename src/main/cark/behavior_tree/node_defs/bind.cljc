@@ -4,7 +4,7 @@
             [cark.behavior-tree.tree :as tree]
             [cark.behavior-tree.type :as type]
             [cark.behavior-tree.base-nodes :as bn]
-            [cark.behavior-tree.lexical-context :as lc]
+            [cark.behavior-tree.dynamic-extent :as de]
             [clojure.spec.alpha :as s]))
 
 (defn log [value]
@@ -32,10 +32,10 @@
         get-bindings (make-get-bindings bindings)]
     [(fn bind-tick [ctx arg]
        (let [bindings (get-bindings ctx)
-             saved-bindings (lc/get-bindings ctx)
-             ctx (-> (lc/set-bindings ctx (merge saved-bindings bindings))
+             saved-bindings (de/get-bindings ctx)
+             ctx (-> (de/set-bindings ctx (merge saved-bindings bindings))
                      (ctx/tick child-id)
-                     (lc/set-bindings saved-bindings))
+                     (de/set-bindings saved-bindings))
              child-status (db/get-node-status ctx child-id)]
          (case child-status
            (:success :failure) (-> (db/set-node-status ctx id child-status)

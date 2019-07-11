@@ -3,7 +3,7 @@
             [cark.behavior-tree.tree :as tree]
             [cark.behavior-tree.db :as db]
             [cark.behavior-tree.hiccup :as h]
-            [cark.behavior-tree.lexical-context :as lc]
+            [cark.behavior-tree.dynamic-extent :as de]
             [cark.behavior-tree.register-nodes :as rn]
             [cark.behavior-tree.event :as event]))
 
@@ -94,11 +94,11 @@
       (db/update-blackboard ctx #(assoc-in % path value)))))
 
 (defn get-var [ctx name]
-  (lc/get-var ctx name))
+  (de/get-var ctx name))
 
 (defn var-getter [name]
   (fn [ctx]
-    (lc/get-var ctx name)))
+    (de/get-var ctx name)))
 
 (defn get-events [ctx]
   (event/get-events-out ctx))

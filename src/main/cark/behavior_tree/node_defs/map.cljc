@@ -4,7 +4,7 @@
             [cark.behavior-tree.tree :as tree]
             [cark.behavior-tree.type :as type]
             [cark.behavior-tree.base-nodes :as bn]
-            [cark.behavior-tree.lexical-context :as lc]
+            [cark.behavior-tree.dynamic-extent :as de]
             [clojure.spec.alpha :as s]))
 
 (defn log [value]
@@ -28,10 +28,10 @@
                        arg)
          :running (let [[item & rest-items] (db/get-node-data ctx id)]
                     (if item
-                      (let [bindings (lc/get-bindings ctx)
-                            ctx (-> (lc/set-bindings ctx (assoc bindings bind-item item))
+                      (let [bindings (de/get-bindings ctx)
+                            ctx (-> (de/set-bindings ctx (assoc bindings bind-item item))
                                     (ctx/tick child-id)
-                                    (lc/set-bindings bindings))]
+                                    (de/set-bindings bindings))]
                         (case (db/get-node-status ctx child-id)
                           :success (recur (-> (db/set-node-data ctx id rest-items)
                                               (ctx/set-node-status child-id :fresh))

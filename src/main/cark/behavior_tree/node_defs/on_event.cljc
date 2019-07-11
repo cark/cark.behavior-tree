@@ -5,7 +5,7 @@
             [cark.behavior-tree.type :as type]
             [cark.behavior-tree.event :as event]
             [cark.behavior-tree.base-nodes :as bn]
-            [cark.behavior-tree.lexical-context :as lc]
+            [cark.behavior-tree.dynamic-extent :as de]
             [clojure.spec.alpha :as s]))
 
 (defn log [value]
@@ -53,10 +53,10 @@
                                      ctx
                                      (-> (db/set-node-status ctx id :failure)
                                          (db/set-node-data id nil)))))
-                      :run (let [saved-bindings (lc/get-bindings ctx)
-                                 ctx (-> (lc/set-bindings ctx (assoc saved-bindings bind-arg arg))
+                      :run (let [saved-bindings (de/get-bindings ctx)
+                                 ctx (-> (de/set-bindings ctx (assoc saved-bindings bind-arg arg))
                                          (ctx/tick child-id)
-                                         (lc/set-bindings saved-bindings))
+                                         (de/set-bindings saved-bindings))
                                  child-status (db/get-node-status ctx child-id)]
                              (case child-status
                                (:success :failure) (-> (ctx/set-node-status ctx child-id :fresh)

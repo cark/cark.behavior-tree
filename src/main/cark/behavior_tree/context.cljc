@@ -2,7 +2,7 @@
   (:refer-clojure :exclude [keys])
   (:require [cark.behavior-tree.db :as db]
             [cark.behavior-tree.tree :as tree]
-            [cark.behavior-tree.lexical-context :as lc]
+            [cark.behavior-tree.dynamic-extent :as de]
             [clojure.set :as set]))
 
 (defn log [value]
@@ -15,13 +15,13 @@
   #{::max-tick-count ::tick-count ::time ::tracing ::trace-depth})
 
 (def keys
-  (set/union specific-keys db/keys tree/keys lc/keys))
+  (set/union specific-keys db/keys tree/keys de/keys))
 
 (defn make [db tree]
   (merge {::max-tick-count default-max-tick-count
           ::tick-count 0
           ::time 0}
-         db tree (lc/make)))
+         db tree (de/make)))
 
 (def base (make (db/make) (tree/make)))
 
