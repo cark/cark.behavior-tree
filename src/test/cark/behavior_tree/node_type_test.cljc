@@ -117,6 +117,7 @@
 
 (deftest predicate-no-wait-test
   (is (= :failure (-> [:predicate {:func (bt/bb-getter-in [:a])}] bt/hiccup->context bt/tick bt/get-status)))
+  (is (= :success (-> [:predicate {:func (bt/bb-getter-in [:a]) :pred complement}] bt/hiccup->context bt/tick bt/get-status)))
   (is (= :success (-> [:sequence
                        [:update {:func (bt/bb-updater-in [:a] (constantly true))}]
                        [:predicate {:func (bt/bb-getter-in [:a])}]] bt/hiccup->context bt/tick bt/get-status))))

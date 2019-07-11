@@ -52,7 +52,8 @@
       (in-state? name)
       (when enter-event
         enter-event)
-      events])))
+      (when event
+        events)])))
 
 (defn event-arg [ctx]
   (bt/get-var ctx ::event-arg))

@@ -7,6 +7,7 @@
             [clojure.spec.alpha :as s]))
 
 (s/def ::func fn?)
+(s/def ::pred ifn?)
 (s/def ::wait? (s/or :boolean boolean?
                      :function fn?))
 
@@ -16,9 +17,10 @@
         wait? (case type
                 :boolean (constantly value)
                 :function value
-                nil (constantly false))]
+                nil (constantly false))
+        pred (or (:pred params) identity)]
     [(fn predicate-tick [ctx arg]
-       (if (func ctx)
+       (if (pred (func ctx))
          (ctx/set-node-status ctx id :success)
          (if (wait? ctx)
            (ctx/set-node-status ctx id :running)
@@ -29,5 +31,5 @@
   (type/register
    (bn/leaf
     {::type/tag :predicate
-     ::type/params-spec (s/keys :req-un [::func] :opt-un [::wait?])
+     ::type/params-spec (s/keys :req-un [::func] :opt-un [::wait? ::pred])
      ::type/compile-func compile-node})))

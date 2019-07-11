@@ -36,7 +36,7 @@
 ;; this committee might accept, reject or put the change on hold
 ;; accept and reject are our stop points
 ;; if the change is on hold, we will start the whole processus anew by amending the
-;; change proposal document and sending it again to all stakeholders
+;; change proposal document and sending it again to all stakeholders 
 ;;
 
 (def sec 1000)

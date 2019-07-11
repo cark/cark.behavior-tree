@@ -1,7 +1,8 @@
 #+STARTUP: hidestars indent content
 * TODO behavior tree
 ** DONE on-cancel
-** TODO finish change control example
-** TODO redo state machine with rerun-children ?
+** DONE finish change control example
+** DONE redo state machine with rerun-children ?
+** TODO pred in predicate
 ** TODO Manual
 *** TODO remember to talk about on-cancel
