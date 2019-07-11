@@ -1,6 +1,4 @@
-{:paths ["src/main"
-         "src/test"
-         "src/dev"]
+{:paths ["src/main"]
 
  :deps {expound             {:mvn/version "0.7.2"}
         org.clojure/clojure {:mvn/version "1.10.1"}}
