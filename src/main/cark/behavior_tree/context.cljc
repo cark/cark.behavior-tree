@@ -54,7 +54,7 @@
 
 (defn tick [ctx node-id]
   (case (db/get-node-status ctx node-id)
-    (:fresh :running) (if (::tracing ctx)
+    (:fresh :running) (if (::tracing ctx) ;; TODO : cleanup here
                         (let [string (apply str (concat (repeat (::trace-depth ctx) "  ")
                                                         [node-id (:tag (tree/get-node-meta ctx node-id))
                                                          (if-let [id (:id (:params (tree/get-node-meta ctx node-id)))]
@@ -97,7 +97,6 @@
 
 (defn cancel [ctx node-id]
   ;; TODO: tick cancel node ...cancelling should remove node data as well ..not that's a bug !
-  #_(reset-nodes ctx (call-node ctx node-id :get-children-ids nil))
   (-> (if (= :on-cancel (:tag (tree/get-node-meta ctx node-id)))
         ((tree/get-node ctx node-id) (inc-tick-count ctx) :cancel)
         ctx)

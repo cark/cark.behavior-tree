@@ -92,7 +92,7 @@
 
 (defn crossroad []
   (-> [:parallel
-       (make-traffic-light :we 60000) ;;using the hiccup function call syntax here
+       (make-traffic-light :we 60000) 
        (make-traffic-light :ns 0)]
       bt/hiccup->context (bt/tick 0) (bt/tick+ 60000)))
 
