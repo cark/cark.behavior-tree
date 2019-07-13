@@ -25,6 +25,6 @@
                      :extra-paths ["src/meta"] 
                      :main-opts ["-m" "metav.spit"
                                  "-r" "cark/behavior-tree"
-                                 "--output-dir" "src"
+                                 "--output-dir" "src/meta"
                                  "--namespace" "cark.behavior-tree.meta"
                                  "--formats" "cljc"]}}}
