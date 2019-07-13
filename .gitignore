@@ -4,6 +4,7 @@ public/js
 /target
 /checkouts
 /src/gen
+/src/meta
 extension/out/
 extension/manifest.json
 pom.xml
