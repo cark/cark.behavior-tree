@@ -29,12 +29,12 @@
        (fn named-timer-tick [ctx arg]
          (case (db/get-node-status ctx id)
            :fresh (recur (-> (db/set-node-data ctx id (+ (or (db/get-timer-start-time ctx (get-name ctx))
-                                                             (ctx/get-time ctx))
+                                                             (db/get-time ctx))
                                                          (get-duration ctx)))
                              (db/set-node-status id :running))
                          arg)
            :running (let [end (db/get-node-data ctx id)
-                          now (ctx/get-time ctx)]
+                          now (db/get-time ctx)]
                       (if (<= end now)
                         (-> (db/set-node-status ctx id :success)
                             (db/set-timer-start-time (get-name ctx) end)
@@ -42,10 +42,10 @@
                         ctx))))
        (fn timer-tick [ctx arg]
          (case (db/get-node-status ctx id)
-           :fresh (recur (-> (db/set-node-data ctx id (+ (ctx/get-time ctx) (get-duration ctx)))
+           :fresh (recur (-> (db/set-node-data ctx id (+ (db/get-time ctx) (get-duration ctx)))
                              (db/set-node-status id :running))
                          arg)
-           :running (if (<= (db/get-node-data ctx id) (ctx/get-time ctx))
+           :running (if (<= (db/get-node-data ctx id) (db/get-time ctx))
                       (-> (db/set-node-status ctx id :success)
                           (db/set-node-data id nil))
                       ctx))))

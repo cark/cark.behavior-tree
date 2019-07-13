@@ -12,15 +12,14 @@
 (def default-max-tick-count 100000)
 
 (def specific-keys
-  #{::max-tick-count ::tick-count ::time ::tracing ::trace-depth})
+  #{::max-tick-count ::tick-count ::tracing ::trace-depth})
 
 (def keys
   (set/union specific-keys db/keys tree/keys de/keys))
 
 (defn make [db tree]
   (merge {::max-tick-count default-max-tick-count
-          ::tick-count 0
-          ::time 0}
+          ::tick-count 0}
          db tree (de/make)))
 
 (def base (make (db/make) (tree/make)))
@@ -41,16 +40,6 @@
   (if (< (get-tick-count context) (get-max-tick-count context))
     (update context ::tick-count inc)
     (throw (ex-info "Max tick count reached" {:tick-count (get-tick-count context)}))))
-
-(defn get-time
-  "Returns the time at which this context is executing, as system milliseconds"
-  [ctx]
-  (::time ctx))
-
-(defn set-time
-  "Sets the context's execution time, as system milliseconds"
-  [ctx ms]
-  (assoc ctx ::time ms))
 
 (defn tick [ctx node-id]
   (case (db/get-node-status ctx node-id)

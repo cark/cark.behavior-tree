@@ -26,12 +26,12 @@
    (let [id (tree/get-root-node-id ctx)]
      (-> (ctx/reset-tick-count ctx)
          event/clear-events-out
-         (ctx/set-time time)
+         (db/set-time time)
          (ctx/tick id)
          check-no-in-events-left))))
 
 (defn tick+ [ctx duration]
-  (tick ctx (+ (ctx/get-time ctx) duration)))
+  (tick ctx (+ (db/get-time ctx) duration)))
 
 (defn get-status [ctx]
   (db/get-node-status ctx (tree/get-root-node-id ctx)))

@@ -103,11 +103,12 @@
     (is (= [:red :green] (-> (crossroad) (bt/tick+ 50000) (bt/tick+ 10000) report)))
     (is (= [:red :yellow] (-> (crossroad) (bt/tick+ 50000) (bt/tick+ 10000) (bt/tick+ 50000) report)))
     (is (= [:green :red] (-> (crossroad) (bt/tick+ 50000) (bt/tick+ 10000) (bt/tick+ 50000) (bt/tick+ 10000) report)))
-    ;; now do it in a single tick
+    ;; now do it in a single tick 
     (is (= [:red :green] (-> (crossroad) (bt/tick+ 60000) report)))
     (is (= [:red :yellow] (-> (crossroad) (bt/tick+ 110000) report)))
     (is (= [:green :red] (-> (crossroad) (bt/tick+ 120000) report)))
     ;; 25-30ms on my computer (jvm), I'll call it good enough
-    (let [crossroad (crossroad)]
-      (is (= [:green :red] (time (-> crossroad (bt/tick+ (* 1000 60 60 24)) report))))))) 
+    ;; 10 times as slow in chrome, still only 250/300ms 
+    #_(let [crossroad (crossroad)] 
+        (is (= [:green :red] (time (-> crossroad (bt/tick+ (* 1000 60 60 24)) report))))))) 
 

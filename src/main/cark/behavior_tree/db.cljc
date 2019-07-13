@@ -5,7 +5,7 @@
 
 
 (def specific-keys "The keys found in a database"
-  #{::node-status ::node-data ::blackboard ::timer-start-times})
+  #{::node-status ::node-data ::blackboard ::timer-start-times ::time})
 
 (def keys
   (set/union specific-keys event/keys))
@@ -14,6 +14,7 @@
   (merge {::node-status {}
           ::node-data {}
           ::blackboard {}
+          ::time 0
           ::timer-start-times {}}
          (event/make)))
 
@@ -62,3 +63,13 @@
   "Sets the next start time for a timer"
   [db timer-name value]
   (assoc-in db [::timer-start-times timer-name] value))
+
+(defn get-time
+  "Returns the time at which this context is executing, as system milliseconds"
+  [db]
+  (::time db))
+
+(defn set-time
+  "Sets the context's execution time, as system milliseconds"
+  [db ms]
+  (assoc db ::time ms))
