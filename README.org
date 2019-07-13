@@ -1,25 +1,24 @@
 #+STARTUP: hidestars indent content
 * cark.behavior-tree
   A behavior tree implementation for clojure and clojurescript. Also includes a state machine built on top of its primitives.
-** Alpha status
-   This library is just out, the API is bound to change a little bit over the next months. We'll be doing clojar 
-releases when in beta.
 ** Features
    - Persistent, fully functional.
    - Separation between the changing parts (the database) and the static parts (the tree), for keeping/serializing between tick invokations.
    - Hiccup-like format for tree definition.
-   - a path DSL to access blackboard data and facilitate tree reuse.
+   - Compatible with both clojure and clojurescript
    - A state machine implementation.
+   - Quite fast
 ** What is it good for ?
    - This is well suited for modeling and keeping track of concurrent, asynchronous processes and workflows.
    - Makes these processes and workflows easily testable.
-   - There is a bit of an overlap with state machines, but has more powerful primitives.
+   - Sequential notation, asynchronous execution.
+   - There is a bit of an overlap with state machines, but this has more powerful primitives.
    - This implementation is not for real time game AI programming. The goal was to be functional and easy to understand. 
-There is much allocation going on.
+There is still much allocation going on.
    - This is not for fine grained, computationally intensive tasks, you won't be writing the next regex parser with it.
+   - On the other hand, it's still fast enough to control a few animations on a web page.
 ** What is a behavior tree ?
-   While the concept of behavior tree predates that, this implementation started with the idea that the game AI
- behavior trees could find a place in regular application developement. 
+   This implementation started with the idea that the game AI behavior trees could find a place in regular application developement. 
 
    These trees are processing nodes in a depth first manner, leaving these in one of 4 states:
    - :fresh : The node is ready to be used for the "first time"
@@ -27,15 +26,20 @@ There is much allocation going on.
    - :success and :failure : The node has reached its final state, this result is cached and the node will not be rerun until
  being "refreshed"
 
-   Each time the tick function is called, the running nodes are "ticked", possibly queuing other nodes for ticking, until there is
- no more node to tick, or the root node is either successful or failed.
+   Each time the core/tick function is called, the tree is traversed, skipping :success and :failure nodes. 
+The :fresh and :running nodes are "ticked", possibly ticking their children. They adjust their status according to their 
+parameters and children status. 
+
+   This allows the user to describe the modeled processes sequentially although these might be asynchronous.
+
+   This implementation communicates with the outside world via incoming and outgoing events and, most importantly, the blackboard.
 
 *** The blackboard
-    When ticking the tree, its database has a blackboard key which contains the application specific data. The tree can
-  act or react on/to this data.
+When ticking the tree, its database has a blackboard key which contains the application specific data. The tree can
+act or react on/to this data. The user can also update its value between tick invokations.
 
 *** Nodes
-    There are 3 broad categories of nodes :
+There are 3 broad categories of nodes :
     - Leaf nodes : These are the "actually doing stuff" nodes of the tree, they cannot have any children.
     - Decorator nodes : These nodes have a single child, they are repeating node, or result changing nodes.
     - Branch nodes : These nodes have one or more children.
@@ -46,63 +50,60 @@ There is much allocation going on.
      - :until-success : repeats until the child succeeds, and then fails. Refreshes its child on each iteration.
      - :always-failure : as soon as the child fails or succeeds, this node fails.
      - :always-success : as soon as the child fails or succeeds, this node succeeds.
-     - :lenses : This node establishes a lexical context for the path DSL
+     - :bind : binds one or several values taken from the blackboard (and/or modified by some function) to vars that will be available to its children
+     - :map : this node will bind over a blackboard sequence, binding each item to a var before executing its child
+     - :on-event : tests for the presence of an event, possibly waiting for it, before executing its child, binding the event arg to a var
+     - :trace : Activates tracing for the subtree it is the root of. Use for debugging.
+     - :on-cancel : executes its on-cancel node when it passes from the :running to the :fresh status. Use for resource disposal.
 **** Branch nodes
      - :sequence : This node ticks its children one by one, succeeding when they all succeed, or failing if any fails.
      - :seletor : This node ticks its children one by one, succeeding if any of these succeeds, or failing if they all fail.
      - :parallel : This node tick all its children "concurrently", succeeding or failing according to its policy parameter.
- This node is probably what makes the behavior tree interesting. Policies can be :sequence (succeed if all succeed, fail is any fails), 
- :select (succeed is any succeed, fail if all fail) or a map with success and failure specific values, which may be :some :all or an integer.
-     - :activator : activates its payload node when its predicate becomes true, returns its else node's result otherwise
+     - :guard : checks that its predicate node succeeds before executing its payload node, the check happens even when the node is running.
+     - :guard-selector : accepts only guard childrens, executes the first child whose predicate succeeds, possibly interrupting an already running child.
 **** Leaf nodes
-     - :update : updates the blackboard, using the func blackboard function parameter.
-     - :predicate : succeeds or fail according to the result of it's func blackboard function parameter.
-     - :consume-event : consumes the event specified by its name and pick? parameters, updating the blackboard with the event argument,
-  according to its update blackboard function.
-     - :send-event : Sends an event to the library user, with an optional argument returned by its arg-func blackboard function.
-     - :timer : Succeeds when the time provided by its get-ms blackboard function has elapsed, keeps in the running state otherwise.
-     - :timer-init : Usefull in setting the start time of named timers.
-   
+     - :update : updates the tree context, using the func parameter.
+     - :predicate : succeeds or fail according to the result of it's func function parameter.
+     - :consume-event : consumes an event, possibly updating the blackboard with the event's argument
+     - :send-event : Sends an event to the library user, with an optional argument.
+     - :timer : Succeeds when the time provided by its duration parameter has elapsed, keeps in the running state otherwise.
+     - :timer-init : Usefull in setting the start time of named timers. (TODO)
+     - :success-leaf : always succeed
+     - :failure-leaf : always fails
 **** Extending
      Extending the tree with new nodes is expected and probably necessary depending on the use cases.
  Ping me if the need arises and you can't figure it out.
-
 *** Hiccup
-
-*** Look 'ma, an example !
+The tree is described with an hiccup-like notation, then compiled to a more performant data format. 
+*** A quick example
 
 #+BEGIN_SRC clojure
   ;; we define a traffic light that goes through all colors
-  ;; Real use would eschew the time parameter when calling the tick function.
-  (deftest test-traffic-light-1
-    (let [ctx (-> [:with-lenses {:let [:color [:color]]}
-		   [:sequence
-		    [:timer-init {:name :traffic-light}] 
-		    [:repeat
-		     [:sequence
-		      [:update {:func [:with-path :color (constantly :green)]}]
-		      [:timer {:name :traffic-light :get-ms (constantly 60000)}]
-		      [:update {:func [:with-path :color (constantly :yellow)]}]
-		      [:timer {:name :traffic-light :get-ms (constantly 10000)}]
-		      [:update {:func [:with-path :color (constantly :red)]}]
-		      [:timer {:name :traffic-light :get-ms (constantly 60000)}]]]]]
-		  bt/hiccup->context)]
-      (is (= {:color :green} (-> ctx (bt/tick 0) bt/get-blackboard)))
-      (is (= {:color :green} (-> ctx (bt/tick 0) (bt/tick 59000) bt/get-blackboard)))
-      (is (= {:color :yellow} (-> ctx (bt/tick 0) (bt/tick 60001) bt/get-blackboard)))
-      (is (= {:color :red} (-> ctx (bt/tick 0) (bt/tick 75000) bt/get-blackboard))) 
-      (is (= {:color :red} (-> ctx (bt/tick 0) (bt/tick 60000) (bt/tick 70001) bt/get-blackboard))) 
-      (is (= {:color :green} (-> ctx (bt/tick 0) (bt/tick 60000) (bt/tick 70000)
-				 (bt/tick 130001) bt/get-blackboard)))))
+  ;; Real use would not use the time parameter when calling the tick function.
+  (defn traffic-light-1 []
+    (-> [:repeat
+         [:sequence
+          [:update {:func (bt/bb-setter :green)}]
+          [:timer {:timer :traffic-light :duration 50000}]
+          [:update {:func (bt/bb-setter :yellow)}]
+          [:timer {:timer :traffic-light :duration 10000}]
+          [:update {:func (bt/bb-setter :red)}]
+          [:timer {:timer :traffic-light :duration 60000}]]]
+        bt/hiccup->context (bt/tick 0)))
+
+  (defn do-traffic-light-tests [traffic-light]
+    (is (= :green (-> traffic-light bt/bb-get)))
+    (is (= :green (-> traffic-light (bt/tick+ 49999) bt/bb-get)))
+    (is (= :yellow (-> traffic-light (bt/tick+ 50000) bt/bb-get)))
+    (is (= :red (-> traffic-light (bt/tick+ 50000) (bt/tick+ 10000) bt/bb-get)))
+    (is (= :green (-> traffic-light (bt/tick+ 50000) (bt/tick+ 10000) (bt/tick+ 60000) bt/bb-get)))
+    (is (= :yellow (-> traffic-light (bt/tick+ 50000) (bt/tick+ 10000) (bt/tick+ 60000) (bt/tick+ 50000) bt/bb-get)))
+    ;;do the same in a single tick (catching up an exceptionally long GC pause !)
+    (is (= :red (-> traffic-light (bt/tick+ 60000) bt/bb-get)))
+    (is (= :green (-> traffic-light (bt/tick+ 120000) bt/bb-get)))
+    (is (= :yellow (-> traffic-light (bt/tick+ 170000) bt/bb-get))))
+
 #+END_SRC
-
-*** State machine
-
-*** Path DSL
-
-*** Events
-
-*** Timers
 
 *** Tests
     There are quite a few tests that should help in uderstanding how the tree works. In the src/test directory, you'll also find a

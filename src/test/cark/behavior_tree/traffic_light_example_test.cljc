@@ -23,7 +23,7 @@
   (is (= :red (-> traffic-light (bt/tick+ 50000) (bt/tick+ 10000) bt/bb-get)))
   (is (= :green (-> traffic-light (bt/tick+ 50000) (bt/tick+ 10000) (bt/tick+ 60000) bt/bb-get)))
   (is (= :yellow (-> traffic-light (bt/tick+ 50000) (bt/tick+ 10000) (bt/tick+ 60000) (bt/tick+ 50000) bt/bb-get)))
-  ;;do the same in a single tick (catching up an exceptionally long GC pause)
+  ;;do the same in a single tick (catching up an exceptionally long GC pause !)
   (is (= :red (-> traffic-light (bt/tick+ 60000) bt/bb-get)))
   (is (= :green (-> traffic-light (bt/tick+ 120000) bt/bb-get)))
   (is (= :yellow (-> traffic-light (bt/tick+ 170000) bt/bb-get))))
