@@ -22,8 +22,7 @@
    These trees are processing nodes in a depth first manner, leaving these in one of 4 states:
    - :fresh : The node is ready to be used for the "first time"
    - :running : The node is currently running, probably waiting some sort of condition before reaching its final state
-   - :success and :failure : The node has reached its final state, this result is cached and the node will not be rerun until
- being "refreshed"
+   - :success and :failure : The node has reached its final state, this result is cached and the node will not be rerun until being "refreshed"
 
    Each time the core/tick function is called, the tree is traversed, skipping :success and :failure nodes. 
 The :fresh and :running nodes are "ticked", possibly ticking their children. They adjust their status according to their 
@@ -46,20 +45,20 @@ There are 3 broad categories of nodes :
      - :inverter : succeed when its child fails, or fails when its child succeeds.
      - :repeat : repeats forever or until the count value is reached, refreshing its child on each iteration.
      - :until-failure : repeats until the child fails, and then succeeds. Refreshes its child on each iteration.
-     - :until-success : repeats until the child succeeds, and then fails. Refreshes its child on each iteration.
+     - :until-success : repeats until the child succeeds, and then succeeds. Refreshes its child on each iteration.
      - :always-failure : as soon as the child fails or succeeds, this node fails.
      - :always-success : as soon as the child fails or succeeds, this node succeeds.
      - :bind : binds one or several values taken from the blackboard (and/or modified by some function) to vars that will be available to its children
-     - :map : this node will bind over a blackboard sequence, binding each item to a var before executing its child
+     - :map : this node will loop over a sequence, binding each item to a var before executing its child
      - :on-event : tests for the presence of an event, possibly waiting for it, before executing its child, binding the event arg to a var
      - :trace : Activates tracing for the subtree it is the root of. Use for debugging.
-     - :on-cancel : executes its on-cancel node when it passes from the :running to the :fresh status. Use for resource disposal.
 **** Branch nodes
      - :sequence : This node ticks its children one by one, succeeding when they all succeed, or failing if any fails.
      - :seletor : This node ticks its children one by one, succeeding if any of these succeeds, or failing if they all fail.
      - :parallel : This node tick all its children "concurrently", succeeding or failing according to its policy parameter.
      - :guard : checks that its predicate node succeeds before executing its payload node, the check happens even when the node is running.
      - :guard-selector : accepts only guard childrens, executes the first child whose predicate succeeds, possibly interrupting an already running child.
+     - :on-cancel : executes its on-cancel node when it passes from the :running to the :fresh status. Use for resource disposal.
 **** Leaf nodes
      - :update : updates the tree context, using the func parameter.
      - :predicate : succeeds or fail according to the result of it's func function parameter.
@@ -73,7 +72,7 @@ There are 3 broad categories of nodes :
      Extending the tree with new nodes is expected and probably necessary depending on the use cases.
  Ping me if the need arises and you can't figure it out.
 *** Hiccup
-The tree is described with an hiccup-like notation, then compiled to a more performant data format. 
+The tree is described with an hiccup-like notation, then compiled to a more performant structure.
 *** A quick example
 
 #+BEGIN_SRC clojure
@@ -105,6 +104,19 @@ The tree is described with an hiccup-like notation, then compiled to a more perf
 #+END_SRC
 
 *** Tests
-    There are quite a few tests that should help in uderstanding how the tree works. In the src/test directory, you'll also find a
+    There are quite a few tests that should help in understanding how the tree works. In the src/test directory, you'll also find a
 couple real world'ish examples.
 
+They all can be run for both clojurescript and clojure with these commands :
+#+BEGIN_SRC sh
+  npm install
+  clojure -A:all-tests
+#+END_SRC
+
+It is also possible to run the clojurescript test with shadow-cljs in your prefered browser with this command :
+
+#+BEGIN_SRC sh
+  npx shadow-cljs watch test
+#+END_SRC
+
+You then can navigate to [[http://localhost:8022/][http://localhost:8022/]] and see the test results.
