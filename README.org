@@ -13,8 +13,7 @@
    - Makes these processes and workflows easily testable.
    - Sequential notation, asynchronous execution.
    - There is a bit of an overlap with state machines, but this has more powerful primitives.
-   - This implementation is not for real time game AI programming. The goal was to be functional and easy to understand. 
-There is still much allocation going on.
+   - This implementation is not for real time game AI programming. The goal was to be functional and easy to understand. There is still much allocation going on.
    - This is not for fine grained, computationally intensive tasks, you won't be writing the next regex parser with it.
    - On the other hand, it's still fast enough to control a few animations on a web page.
 ** What is a behavior tree ?
