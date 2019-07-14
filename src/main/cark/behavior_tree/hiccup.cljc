@@ -1,4 +1,6 @@
 (ns cark.behavior-tree.hiccup
+  "Provides the services for parsing and compiling the hiccup notation to
+a static tree."
   (:require [clojure.spec.alpha :as s]
             [expound.alpha :as expound]
             [cark.behavior-tree.tree :as tree]
@@ -9,8 +11,19 @@
   (let [[tag & rest-h] hiccup
         [params rest-h] (if (map? (first rest-h))
                           [(first rest-h) (rest rest-h)]
-                          [{} rest-h])]
-    (into [tag params] (->> rest-h (filter identity) (map prepare)))))
+                          [{} rest-h])
+        children (->> rest-h
+                      (filter identity)
+                      (map prepare)
+                      (reduce (fn [result child]
+                                (if-let [children (and (map? child)
+                                                       (:splice child))]
+                                  (into result children)
+                                  (conj result child)))
+                              []))]
+    (if (= :<> tag)
+      {:splice children}
+      (into [tag params] children))))
 
 (defn parse
   "Parses an hiccup behavior tree, returning the parse tree"

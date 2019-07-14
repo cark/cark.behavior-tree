@@ -599,6 +599,14 @@
               [:success-leaf]]
              bt/hiccup->context bt/tick bt/get-events)))) 
 
+(deftest hiccup-splice-test
+  (is (= 2 (-> [:sequence
+                [:<>
+                 [:update {:func (bt/bb-setter 0)}]
+                 [:update {:func (bt/bb-updater inc)}]
+                 [:update {:func (bt/bb-updater inc)}]]]
+               bt/hiccup->context bt/tick bt/bb-get))))
+
 ;; (deftest hiccup-func-call-test
 ;;   (is (= [:inverter [:success-leaf]] (h/prepare [:inverter [:success-leaf]])))
 ;;   (is (= [:inverter [:success-leaf]] (h/prepare [:inverter [(fn [] [:success-leaf])]])))

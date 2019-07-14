@@ -15,7 +15,8 @@
     spec
     (s/cat :tag ::tag :params (s/? ::params) :children (s/* ::child))))
 
-(s/def ::tag #(some? (type/get-type %)))
+(s/def ::tag #(or (some? (type/get-type %))
+                  (= % :<>)))
 
 (s/def ::node (s/multi-spec node-dispatch ::node))
 (s/def ::params map?)
