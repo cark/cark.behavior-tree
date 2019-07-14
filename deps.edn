@@ -1,6 +1,6 @@
 {:paths ["src/main"]
 
- :deps {expound/expound     {:mvn/version "0.7.2"}
+ :deps {expound     {:mvn/version "0.7.2"}
         org.clojure/clojure {:mvn/version "1.10.1"}}
 
  :aliases {:all-tests     {:extra-paths ["src/test"]
@@ -25,14 +25,14 @@
            :metav         {:extra-deps {metav {:mvn/version "1.5.1"}}}
            :artifact-name {:extra-deps {metav {:mvn/version "1.5.1"}}
                            :main-opts  ["-m" "metav.display"
-                                        "-r" "cark/behavior-tree"]}
+                                        "-r" "cark.behavior-tree"]}
            :release       {:extra-deps {metav {:mvn/version "1.5.1"}}
                            :main-opts  ["-m" "metav.release"
                                         "-r" "cark.behavior-tree"]}
            :spit          {:extra-deps  {metav {:mvn/version "1.5.1"}}
                            :extra-paths ["src/meta"] 
                            :main-opts   ["-m" "metav.spit"
-                                         "-r" "cark/behavior-tree"
+                                         "-r" "cark.behavior-tree"
                                          "--output-dir" "src/meta"
                                          "--namespace" "cark.behavior-tree.meta"
                                          "--formats" "cljc"]}
