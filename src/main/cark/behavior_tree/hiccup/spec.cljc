@@ -1,4 +1,5 @@
 (ns cark.behavior-tree.hiccup.spec
+  "This is the spec for the hiccup dsl of a behavior tree"
   (:require
    [clojure.spec.alpha :as s]
    [cark.behavior-tree.type :as type]))
