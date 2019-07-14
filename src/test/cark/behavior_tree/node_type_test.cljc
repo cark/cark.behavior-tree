@@ -523,6 +523,16 @@
               [:send-event {:event :c}]]
              bt/hiccup->context (bt/tick 0) (bt/tick 15) bt/get-events))))
 
+(deftest timer-init-test
+  (is (= :running (-> [:sequence
+                       [:timer-init {:timer :foo :time -5}]
+                       [:timer {:timer :foo :duration 10}]]
+                      bt/hiccup->context (bt/tick 0) bt/get-status)))
+  (is (= :success (-> [:sequence
+                       [:timer-init {:timer :foo :time -5}]
+                       [:timer {:timer :foo :duration 10}]]
+                      bt/hiccup->context (bt/tick 5) bt/get-status))))
+
 (deftest always-success-test
   (is (= :success (-> [:always-success [:success-leaf]]
                       bt/hiccup->context bt/tick bt/get-status)))

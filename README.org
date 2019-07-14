@@ -1,5 +1,5 @@
 #+STARTUP: hidestars indent content
-* cark.behavior-tree
+* cark/behavior-tree
   A behavior tree implementation for clojure and clojurescript. Also includes a state machine built on top of its primitives.
 ** Features
    - Persistent, fully functional.
@@ -42,7 +42,7 @@ There are 3 broad categories of nodes :
     - Decorator nodes : These nodes have a single child, they are repeating node, or result changing nodes.
     - Branch nodes : These nodes have one or more children.
 **** Decorator nodes
-     - :inverter : succeed when its child fails, or fails when its child succeeds.
+     - :inverter : succeeds when its child fails, or fails when its child succeeds.
      - :repeat : repeats forever or until the count value is reached, refreshing its child on each iteration.
      - :until-failure : repeats until the child fails, and then succeeds. Refreshes its child on each iteration.
      - :until-success : repeats until the child succeeds, and then succeeds. Refreshes its child on each iteration.
@@ -72,7 +72,9 @@ There are 3 broad categories of nodes :
      Extending the tree with new nodes is expected and probably necessary depending on the use cases.
  Ping me if the need arises and you can't figure it out.
 *** Hiccup
-The tree is described with an hiccup-like notation, then compiled to a more performant structure.
+The tree is described with a hiccup-like notation, then compiled to a more optimized data structure. 
+Many of the parameters defined for different node types can take either a value or a function, that will then be executed receiving the tree context as its parameter.
+Additional keys can be passed to this parameter map with no adverse effect.
 *** A quick example
 
 #+BEGIN_SRC clojure
@@ -108,14 +110,14 @@ The tree is described with an hiccup-like notation, then compiled to a more perf
 couple real world'ish examples.
 
 They all can be run, for both clojurescript and clojure, with these commands :
-#+BEGIN_SRC sh
+#+BEGIN_SRC
   npm install
   clojure -A:all-tests
 #+END_SRC
 
 It is also possible to run the clojurescript tests with shadow-cljs in your prefered browser with this command :
 
-#+BEGIN_SRC sh
+#+BEGIN_SRC
   npx shadow-cljs watch test
 #+END_SRC
 
