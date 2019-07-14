@@ -19,7 +19,8 @@
            :garamond      {:main-opts  ["-m" "garamond.main"
                                         "-p" ""
                                         "-g" "cark"
-                                        "-a" "cark.behavior-tree"]
+                                        "-a" "cark.behavior-tree"
+                                        "-u" "https://github.com/cark/cark.behavior-tree"]
                            :extra-deps {com.workframe/garamond {:mvn/version "0.4.0"}}}
            :metav         {:extra-deps {metav {:mvn/version "1.5.1"}}}
            :artifact-name {:extra-deps {metav {:mvn/version "1.5.1"}}
