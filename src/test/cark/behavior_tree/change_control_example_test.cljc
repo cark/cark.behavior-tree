@@ -56,12 +56,14 @@
             {:name :last-reminder :wait (* 2 day)}
             {:name :consider-accepted :wait day}])
 
+
+;; we start with emails and test that
+
+
 (def send-mail [:sequence
                 [:timer {:timer (bt/var-getter :department) ;; we need named timers for each department
                          :duration (bt/var-getter :mail-wait)}]
                 [:send-event {:event :send-mail :arg #(vector (bt/get-var % :mail-name) (bt/get-var % :department))}]])
-
-;; we start with emails and test that
 
 (deftest send-mail-test
   (is (-> send-mail bt/hiccup->context))
@@ -149,7 +151,9 @@
 ;; provide a way to add stakeholders
 
 (def add-stakeholder [:on-event {:event :add-stakeholder :bind-arg :stakeholder :wait? true}
-                      [:update {:func #(bt/bb-update-in % [:stakeholders] conj (bt/get-var % :stakeholder))}]])
+                      [:sequence
+                       [:update {:func #(bt/bb-update-in % [:stakeholders] conj (bt/get-var % :stakeholder))}]
+                       [:timer-init {:timer (bt/var-getter :stakeholder)}]]])
 
 (def add-stakeholders [:repeat add-stakeholder])
 
@@ -358,8 +362,10 @@
                        monitor-all-departments
                        [:select
                         committee
-                        [:sequence
+                        [:sequence ; reset stakeholders
                          [:update {:func (bt/bb-assocer-in [:approvals] #{})}]
+                         [:map {:seq (bt/bb-getter-in [:stakeholders]) :bind-item :stakeholder}
+                          [:timer-init {:timer (bt/var-getter :stakeholder)}]]
                          [:failure-leaf]]]]]])
 
 
@@ -404,126 +410,3 @@
           (is (= #{[:send-mail [:mail :production]]
                    [:send-mail [:mail :legal]]}
                  (-> ctx (bt/send-event :seal-document) bt/tick bt/get-events set))))))))
-
-;; alright we're done, let's see how big the definition of our change control tree is
-
-(comment
-  (def sec 1000)
-  (def minute (* 60 sec))
-  (def hour (* 60 minute))
-  (def day (* 24 hour))
-  (def week (* 7 day))
-  (def month (* 30 day))
-
-  (def departments #{:production :quality-ensurance :quality-control :regulatory-affairs :legal})
-  (def document-parts #{:as-is :to-be :regulatory-impact})
-
-  (def mails [{:name :mail :wait 0}
-              {:name :reminder :wait week}
-              {:name :reminder :wait week}
-              {:name :urgent-reminder :wait (* 2 day)}
-              {:name :last-reminder :wait (* 2 day)}
-              {:name :consider-accepted :wait day}])
-
-  (def send-mail [:sequence
-                  [:timer {:timer (bt/var-getter :department) ;; we need named timers for each department
-                           :duration (bt/var-getter :mail-wait)}]
-                  [:send-event {:event :send-mail :arg #(vector (bt/get-var % :mail-name) (bt/get-var % :department))}]])
-
-  (def send-mails [:map {:seq mails :bind-item :mail-def}
-                   [:bind {:let [:mail-name #(:name (bt/get-var % :mail-def))
-                                 :mail-wait #(:wait (bt/get-var % :mail-def))]}
-                    send-mail]])
-
-  (def init-approvals [:update {:func (bt/bb-updater assoc
-                                                     :approvals #{}
-                                                     :stakeholders #{})}])
-
-  (def receive-approval [:on-event {:event :approval-received :wait? true :bind-arg :approval-from
-                                    :pick? #(= (bt/get-var %1 :department) %2)}
-                         [:update {:func #(bt/bb-update-in % [:approvals] conj (bt/get-var % :approval-from))}]])
-
-  (def monitor-department-mails [:parallel {:policy :select}
-                                 receive-approval
-                                 send-mails])
-
-  (def add-stakeholder [:on-event {:event :add-stakeholder :bind-arg :stakeholder :wait? true}
-                        [:update {:func #(bt/bb-update-in % [:stakeholders] conj (bt/get-var % :stakeholder))}]])
-
-  (def add-stakeholders [:repeat add-stakeholder])
-
-  (def monitor-stakeholder-mails [:select
-                                  ;; either we're not selected
-                                  [:predicate {:func #(not (bt/bb-get-in % [:stakeholders (bt/get-var % :department)]))}]
-                                  ;; or already approved
-                                  [:predicate {:func #(bt/bb-get-in % [:approvals (bt/get-var % :department)])}]
-                                  ;; or in the process of being approved
-                                  monitor-department-mails])
-
-  (def monitor-all-departments [:parallel {:policy :select}
-                                add-stakeholders
-                                [:until-success
-                                 [:sequence
-                                  (into [:parallel {:policy :sequence :rerun-children true}]
-                                        (map (fn [department]
-                                               [:bind {:let [:department department]} monitor-stakeholder-mails])
-                                             departments))
-                                  [:predicate {:func #(= (count (set/difference (bt/bb-get-in % [:stakeholders])
-                                                                                (bt/bb-get-in % [:approvals])))
-                                                         0)}]]]])
-
-  (def ensure-stakeholder [:select
-                           [:predicate {:func #(seq (bt/bb-get-in % [:stakeholders]))}]
-                           [:sequence
-                            [:send-event {:event :please-add-stakeholders}]
-                            add-stakeholder]])
-
-  (defn edit-document-part [part]
-    [:on-event {:event :edit-document :pick? (fn [ctx [arg-part arg-data]] (= part arg-part))
-                :wait? true :bind-arg :edit-arg}
-     [:update {:func #(bt/bb-update % assoc-in [:document part] (second (bt/get-var % :edit-arg)))}]])
-
-  (def edit-document-parts (into [:parallel {:policy :sequence :rerun-children true}]
-                                 (map edit-document-part document-parts)))
-
-  (def sealable-document [:parallel {:policy :select}
-                          edit-document-parts ;; this one will never fail or succeed
-                          [:until-success
-                           [:on-event {:event :seal-document :wait? true}
-                            [:select
-                             [:guard [:predicate {:func #(>= (count (->> (bt/bb-get-in % [:document])
-                                                                         (map second)
-                                                                         (filter identity)))
-                                                             3)}]
-                              [:success-leaf]]
-                             [:sequence
-                              [:send-event {:event :cannot-seal :arg (constantly :incomplete-document)}]
-                              [:failure-leaf]]]]]])
-
-  (def committee [:sequence
-                  [:send-event {:event :go-to-committee}]
-                  [:on-event {:event :committee-result :bind-arg :result :wait? true}
-                   [:select
-                    [:guard [:predicate {:func #(= :accept (bt/get-var % :result))}]
-                     [:send-event {:event :done :arg (constantly :accept)}]]
-                    [:guard [:predicate {:func #(= :reject (bt/get-var % :result))}]
-                     [:send-event {:event :done :arg (constantly :reject)}]]
-                    [:guard [:predicate {:func #(= :on-hold (bt/get-var % :result))}]
-                     [:sequence
-                      [:send-event {:event :continue :arg (constantly :on-hold)}]
-                      [:failure-leaf]]]]]])
-
-  (def change-control [:sequence
-                       init-approvals
-                       [:until-success
-                        [:sequence
-                         [:send-event {:event :please-edit-document}]
-                         sealable-document
-                         ensure-stakeholder
-                         monitor-all-departments
-                         [:select
-                          committee
-                          [:sequence
-                           [:update {:func (bt/bb-assocer-in [:approvals] #{})}]
-                           [:failure-leaf]]]]]])
-  )

@@ -19,7 +19,8 @@
   (let [[type value] (:time params)
         get-time (case type 
                    :integer (constantly value)
-                   :function value)
+                   :function value
+                   nil (fn [ctx] (db/get-time ctx)))
         [type value] (:timer params)
         get-name (case type
                    :function value
@@ -33,7 +34,7 @@
   (type/register
    (bn/leaf
     {::type/tag :timer-init
-     ::type/params-spec (s/keys :req-un [::time ::timer])
+     ::type/params-spec (s/keys :req-un [::timer] :opt-un [::time])
      ::type/compile-func compile-node})))
 
 
