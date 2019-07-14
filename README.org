@@ -1,4 +1,5 @@
 #+STARTUP: hidestars indent content
+[[https://clojars.org/cark/cark.behavior-tree][https://img.shields.io/clojars/v/cark/cark.behavior-tree.svg]]
 * cark.behavior-tree
   A behavior tree implementation for clojure and clojurescript. Also includes a state machine built on top of its primitives.
 ** Features
