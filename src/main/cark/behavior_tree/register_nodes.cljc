@@ -1,4 +1,4 @@
-(ns cark.behavior-tree.register-nodes
+(ns ^:no-doc cark.behavior-tree.register-nodes
   (:require [cark.behavior-tree.node-defs.success-leaf :as success-leaf]
             [cark.behavior-tree.node-defs.failure-leaf :as failure-leaf]
             [cark.behavior-tree.node-defs.inverter :as inverter]

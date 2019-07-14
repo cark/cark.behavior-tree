@@ -1,4 +1,9 @@
 (ns cark.behavior-tree.state-machine
+  "Provides a state-machine implementation as a client library to the
+behavior tree library. Some book keeping data will thus be stored in the blackboard.
+
+This merely creates a hiccup tree, that will then need to be compiled and used like a regular
+behavior tree."
   (:require [cark.behavior-tree.core :as bt]
             [cark.behavior-tree.hiccup :as hiccup]
             [cark.behavior-tree.event :as event]))
@@ -13,13 +18,17 @@
 (defn- in-state? [name]
   [:predicate {:func #(= (bt/bb-get-in % (get-path %)) name)}])
 
-(defn make [path initial-state & states]
+(defn make
+  "Creates the hiccup for a state machine. Its data will be stored in the black board at 
+the specified path. Upon entering this node, the initial state will directly be activated."
+  [path initial-state & states]
   [:bind {:let [::path (vec path)]}
    [:sequence
     [:update {:func #(bt/bb-update % assoc-in (get-path %) initial-state)}]
     [:until-failure (into [:select] states)]]])
 
 (defn end-state
+  "Creates an end state. While this node returns a failure, the state machine will succeed."
   ([name]
    [:sequence {:id name} (in-state? name)
     [:failure-leaf]])
@@ -27,13 +36,19 @@
    [:sequence {:id name} (in-state? name)
     node [:failure-leaf]]))
 
-(defn event [name node]
+(defn event
+  "Creates an event in the hiccup tree. Once the event is triggered, the provided node will be executed."
+  [name node]
   [:event name node])
 
-(defn enter-event [node]
+(defn enter-event
+  "Creates an enter event in the hiccup tree, triggering as soon as its parent node is transitioned to.
+This also trigger when transitioning from the same state, but not when another event of the same state is triggered."
+  [node]
   [:enter-event nil node])
 
 (defn state
+  "Creates a state, with its associated events"
   ([name & events]
    (let [{:keys [event enter-event]} (group-by first events)
          make-event (fn [[_ event-name node]]
@@ -55,10 +70,14 @@
       (when event
         events)])))
 
-(defn event-arg [ctx]
+(defn event-arg
+  "This context function returns the argument of its closest parent event"
+  [ctx]
   (bt/get-var ctx ::event-arg))
 
-(defn transition [new-state]
+(defn transition
+  "Transitions to some state, another one or the same."
+  [new-state]
   [:sequence
    [:update {:func #(bt/bb-update % assoc-in (get-path %) new-state)}]
    [:failure-leaf]])
