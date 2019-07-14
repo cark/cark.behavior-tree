@@ -107,16 +107,21 @@ The tree is described with an hiccup-like notation, then compiled to a more perf
     There are quite a few tests that should help in understanding how the tree works. In the src/test directory, you'll also find a
 couple real world'ish examples.
 
-They all can be run for both clojurescript and clojure with these commands :
+They all can be run, for both clojurescript and clojure, with these commands :
 #+BEGIN_SRC sh
   npm install
   clojure -A:all-tests
 #+END_SRC
 
-It is also possible to run the clojurescript test with shadow-cljs in your prefered browser with this command :
+It is also possible to run the clojurescript tests with shadow-cljs in your prefered browser with this command :
 
 #+BEGIN_SRC sh
   npx shadow-cljs watch test
 #+END_SRC
 
 You then can navigate to [[http://localhost:8022/][http://localhost:8022/]] and see the test results.
+
+*** License
+Copyright (c) Sacha De Vos and contributors. All rights reserved.
+
+The use and distribution terms for this software are covered by the Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0.php) which can be found in the file LICENSE.html at the root of this distribution. By using this software in any fashion, you are agreeing to be bound by the terms of this license. You must not remove this notice, or any other, from this software.
