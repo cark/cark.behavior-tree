@@ -7,7 +7,10 @@ a static tree."
             [cark.behavior-tree.type :as type]
             [cark.behavior-tree.hiccup.spec :as hs]))
 
-(defn prepare [hiccup]
+(defn prepare
+  "Prepares the hiccup tree by removing the nil nodes and splicing the
+:<> node children into its parent node"
+  [hiccup]
   (let [[tag & rest-h] hiccup
         [params rest-h] (if (map? (first rest-h))
                           [(first rest-h) (rest rest-h)]
@@ -41,13 +44,19 @@ a static tree."
 
 (declare parsed->node)
 
-(defn parsed-children->tree [children tree]
+(defn parsed-children->tree
+  "Compiles the children hiccup nodes, returning their ids and the 
+updated tree in a pair vector"
+  [children tree]
   (reduce (fn [[ids tree] parsed-node]
             (let [[id tree] (parsed->node parsed-node tree)]
               [(conj ids id) tree]))
           [[] tree] children))
 
-(defn parsed->node [parsed tree]
+(defn parsed->node
+  "Compiles a node, setting its meta data and compiled closure in the tree.
+This returns the node id and the updated tree."
+  [parsed tree]
   (let [{:keys [tag params children]} parsed
         [children-ids tree] (parsed-children->tree children tree)
         type (type/get-type tag)
@@ -58,7 +67,9 @@ a static tree."
                                           :params params})]
     [id (tree/set-node tree id node)]))
 
-(defn parsed->tree [tree parsed]
+(defn parsed->tree
+  "Compiles a parsed hiccup tree to a tree, setting its root node id"
+  [tree parsed]
   (let [[id tree] (parsed->node parsed tree)]
     (tree/set-root-node-id tree id)))
 
