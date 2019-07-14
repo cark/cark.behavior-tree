@@ -33,4 +33,7 @@
                                  "-r" "cark/behavior-tree"
                                  "--output-dir" "src/meta"
                                  "--namespace" "cark.behavior-tree.meta"
-                                 "--formats" "cljc"]}}}
+                                 "--formats" "cljc"]}
+           :deploy {:extra-deps {deps-deploy {:mvn/version "RELEASE"}}
+                    :main-opts ["-m" "deps-deploy.deps-deploy" "deploy"
+                                "target/cark.behavior-tree.jar"]}}}
