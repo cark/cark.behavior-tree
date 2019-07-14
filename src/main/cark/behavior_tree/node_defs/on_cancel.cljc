@@ -1,4 +1,18 @@
 (ns cark.behavior-tree.node-defs.on-cancel
+  "The :on-cancel node has exactly two children. 
+The first one is the cancel node and the second one is the payload node.
+It executes its payload node in a transparent manner. If the node is cancelled, that is
+when it goes from the :running state to the :fresh state, the cancel node is then executed.
+
+Please note that the cancel node must succeed or fail in a single behavior tree tick.
+
+This node is particularly usefull for releasing previously aquired resources, like a network socket for instance.
+
+```clojure
+[:on-cancel [:send-event {:event :release-the-socket}]
+  use-socket-sub-tree]
+```"
+  
   (:require [cark.behavior-tree.context :as ctx]
             [cark.behavior-tree.db :as db]
             [cark.behavior-tree.tree :as tree]

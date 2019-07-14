@@ -1,4 +1,18 @@
 (ns cark.behavior-tree.node-defs.parallel
+  "The :parallel node executes its children in parallel, until it
+succeeds or fails according to its policy parameter.
+
+parameters :
+- :rerun-children : (default to false) The :success and :failure children are refreshed and rerun while this node is :running
+- :policy : (defaults to :sequence) the policy can be :
+  - :sequence : the node will succeed when all children succeed, fail when any fails
+  - :select : the node will succeed when any child succeeds, fail when all fail
+  - a map of the form {:success <value> :failure <value>} : each value can be
+     - :every : every node must have the :success or :failure status
+     - :some  : some node must have the :success or :failure status
+     - an integer : the specified number of children must have this status
+
+Every child node is run before their result is checked against the policy"
   (:require [cark.behavior-tree.context :as ctx]
             [cark.behavior-tree.db :as db]
             [cark.behavior-tree.tree :as tree]

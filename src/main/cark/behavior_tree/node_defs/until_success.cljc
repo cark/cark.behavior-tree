@@ -1,4 +1,5 @@
 (ns cark.behavior-tree.node-defs.until-success
+  "The :until-success node refreshes and reruns its child node until it succeeds, and then returns :success"
   (:require [cark.behavior-tree.context :as ctx]
             [cark.behavior-tree.db :as db]
             [cark.behavior-tree.tree :as tree]

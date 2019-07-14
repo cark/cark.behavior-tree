@@ -1,4 +1,6 @@
 (ns cark.behavior-tree.node-defs.trace
+  "The :trace node helps in debugging behavior trees.
+It will activate tracing on its sub-tree, sending hierarchical logging to the tap."
   (:require [cark.behavior-tree.context :as ctx]
             [cark.behavior-tree.db :as db]
             [cark.behavior-tree.tree :as tree]

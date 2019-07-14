@@ -1,7 +1,10 @@
 (ns cark.behavior-tree.node-defs.guard-selector
   "The :guard-selector node may only have :guard children.
-It will check each of its children's predicate until it finds one that succeed.
-It will then run the child's payload, possibly interrupting another previously running child payload."
+Each time it is run, it will refresh and check each of its children's predicates until it finds one that succeeds.
+It will then run the child's payload, possibly interrupting any other previously running child payload.
+
+The :guard-selector node will succeed when any of its children succeeds, and fail
+when either the running child fails, or all the predicates fail."
   (:require [cark.behavior-tree.context :as ctx]
             [cark.behavior-tree.db :as db]
             [cark.behavior-tree.tree :as tree]

@@ -1,4 +1,7 @@
 (ns cark.behavior-tree.node-defs.update
+  "The :update node update the tree context and then succeeds.
+parameters :
+- :func : a context function that updates the tree context is being passed."
   (:require [cark.behavior-tree.context :as ctx]
             [cark.behavior-tree.db :as db]
             [cark.behavior-tree.tree :as tree]

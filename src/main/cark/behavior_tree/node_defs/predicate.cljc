@@ -1,4 +1,9 @@
 (ns cark.behavior-tree.node-defs.predicate
+  "The :predicate node succeeds or fail depending on its pred parameter.
+parameters:
+- :func : This context function will extract data from the tree context, before passing it to the :pred function.
+- :pred : (defaults to identity) This function will be passed the result of the :func call. The node will succeed if this returns a truthy value, fail otherwise.
+- :wait? : The node will stay in the :running state until the predicate is met."
   (:require [cark.behavior-tree.context :as ctx]
             [cark.behavior-tree.db :as db]
             [cark.behavior-tree.tree :as tree]

@@ -1,4 +1,7 @@
 (ns cark.behavior-tree.node-defs.tick-eater
+  "The :tick-eater node stays :running for a number of ticks, and then succeeds.
+parameters:
+- :count : An integer, or integer returning function. The number of ticks before succeeding."
   (:require [cark.behavior-tree.context :as ctx]
             [cark.behavior-tree.db :as db]
             [cark.behavior-tree.tree :as tree]

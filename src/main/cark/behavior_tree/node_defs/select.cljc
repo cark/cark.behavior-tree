@@ -1,4 +1,5 @@
 (ns cark.behavior-tree.node-defs.select
+  "The :select node succeeds when any of its children succeeds, and fails when every child fails"
   (:require [cark.behavior-tree.context :as ctx]
             [cark.behavior-tree.db :as db]
             [cark.behavior-tree.tree :as tree]

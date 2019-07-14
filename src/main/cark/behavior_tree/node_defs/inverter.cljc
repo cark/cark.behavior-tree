@@ -1,4 +1,5 @@
 (ns cark.behavior-tree.node-defs.inverter
+  "The :inverter node succeeds when its child fails, and fails when its child succeeds."
   (:require [cark.behavior-tree.context :as ctx]
             [cark.behavior-tree.db :as db]
             [cark.behavior-tree.tree :as tree]

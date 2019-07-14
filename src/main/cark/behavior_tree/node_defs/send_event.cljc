@@ -1,4 +1,10 @@
 (ns cark.behavior-tree.node-defs.send-event
+  "The :send-event node sends an event to the outside world. It may later be picked buy their
+core/get-events function.
+
+parameters:
+- :event : a keyword or keyword returning function. The event name.
+- :arg : an optional function returning the for this event"
   (:require [cark.behavior-tree.context :as ctx]
             [cark.behavior-tree.db :as db]
             [cark.behavior-tree.tree :as tree]
@@ -9,7 +15,7 @@
 
 (s/def ::event (s/or :keyword keyword?
                      :function fn?))
-(s/def ::arg fn?)
+(s/def ::arg fn?) ; TODO : direct value ?
 
 (defn compile-node [tree id tag params [child-id]]
   (let [[type value] (:event params)

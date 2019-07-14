@@ -1,4 +1,16 @@
 (ns cark.behavior-tree.node-defs.map
+  "The :map node loops over a sequence, re-running its child with each item of the sequence being bound to a var.
+parameters:
+- :seq : a sequence, or sequence returning context function
+- :bind-item : the keyword name of the var to which each item will be bound
+
+When the child succeeds :
+- if there are more items in the sequence, the child will be refreshed and rerun with the next item being bound.
+- if there are no more items, the :map node will succeed
+When the child fails, the :map node will fail
+
+The sequence content is determined when the :map node is :fresh"
+  
   (:require [cark.behavior-tree.context :as ctx]
             [cark.behavior-tree.db :as db]
             [cark.behavior-tree.tree :as tree]
