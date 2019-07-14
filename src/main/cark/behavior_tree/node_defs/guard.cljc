@@ -1,4 +1,16 @@
 (ns cark.behavior-tree.node-defs.guard
+  "The :guard node is a special kind of branch node that can only have two children.
+The first child is called the predicate node, the second child is the payload node.
+
+It is usefull for possibly interrupting a running subtree based on the predicate result.
+
+Each time the :guard node is executed, that is when it is :fresh or :running, the
+predicate node will be re-run (refreshing it if it was in a :success or :failure state)
+
+- If the predicate succeeds, the payload node is then executed, and its result state assigned to the :guard node.
+- If the predicate fails, the payload node is not executed, or is interrupted when running, and the :guard node is set as :failure.
+
+The predicate node must succeed or fail in a single tick."
   (:require [cark.behavior-tree.context :as ctx]
             [cark.behavior-tree.db :as db]
             [cark.behavior-tree.tree :as tree]

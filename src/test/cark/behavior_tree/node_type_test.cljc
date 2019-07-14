@@ -430,7 +430,7 @@
                         [:guard [:predicate {:func #(= (-> % bt/bb-get :i) 2)}]
                          [:tick-eater {:count 1}]]]]
                       bt/hiccup->context bt/tick bt/tick bt/get-status)))
-  (is (= :success (-> [:parallel {:policy :select} 
+  (is (= :running (-> [:parallel {:policy :select} 
                        [:sequence
                         [:update {:func #(bt/bb-set % {:i 0 :result nil})}]
                         [:repeat [:sequence

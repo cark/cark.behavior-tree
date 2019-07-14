@@ -1,4 +1,5 @@
 (ns cark.behavior-tree.node-defs.failure-leaf
+  "The :failure-leaf is a simple node that always fails"
   (:require [cark.behavior-tree.context :as ctx]
             [cark.behavior-tree.db :as db]
             [cark.behavior-tree.tree :as tree]

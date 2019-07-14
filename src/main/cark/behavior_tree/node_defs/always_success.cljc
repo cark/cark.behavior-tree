@@ -1,4 +1,9 @@
 (ns cark.behavior-tree.node-defs.always-success
+  "The :always-success node has no specific parameter.
+It ticks its child and responds to the result in this way :
+- Child is :running -> always-success is :running
+- Child is :success -> always-success is :success
+- Child is :failure -> alway-success is :success"
   (:require [cark.behavior-tree.context :as ctx]
             [cark.behavior-tree.db :as db]
             [cark.behavior-tree.tree :as tree]

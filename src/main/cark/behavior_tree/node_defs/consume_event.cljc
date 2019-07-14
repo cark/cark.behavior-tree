@@ -1,4 +1,13 @@
 (ns cark.behavior-tree.node-defs.consume-event
+  "The :consume-event node consumes an event if it is found in the inbound event list. 
+-If the event was found, the node succeeds.
+-If the event was not found, the node fails, or stays running if the :wait? parameter is true.
+
+Parameters:
+-:event : A keyword, or keyword returning context function. The name of the event to be consumed.
+-:pick? : A context function with two parameters. first the tree context, then the event argument being considered. This acts as an additional filter when considering incoming events to be consumed. The event will be consumed if this function returns a truthy value.
+-:wait? : A boolean, or boolean returning context function. When true the node will stay :running until the event is consumed.
+-:with-arg : A context function with two parameters, first the tree context, then the consumed event argument. This must return a possibly updated tree context."
   (:require [cark.behavior-tree.context :as ctx]
             [cark.behavior-tree.db :as db]
             [cark.behavior-tree.tree :as tree]

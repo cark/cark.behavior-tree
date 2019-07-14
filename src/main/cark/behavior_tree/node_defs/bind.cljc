@@ -1,4 +1,16 @@
 (ns cark.behavior-tree.node-defs.bind
+  "The :bind node establishes a dynamic context, storing some data in
+the defined variables while it executes its child subtree.
+
+It has a single parameter :let which, just like clojure's let is a vector of
+variable names (a keyword) and variable values (a value or a context funtion).
+
+```clojure
+[:bind {:let [:one 1 
+              :two (bt/bb-getter-in [:some-bb-key])]}
+  [send-event {:event :hello :arg (bt/var-getter :two)}]]
+```
+"
   (:require [cark.behavior-tree.context :as ctx]
             [cark.behavior-tree.db :as db]
             [cark.behavior-tree.tree :as tree]
@@ -24,8 +36,8 @@
                                   :literal (fn [_] [name value])
                                   :function (fn [node] [name (value node)])))))
                       [] bindings)]
-    (fn [node]
-      (into {} (map #(% node)) funcs))))
+    (fn [ctx]
+      (into {} (map #(% ctx)) funcs))))
 
 (defn compile-node [tree id tag params [child-id]]
   (let [bindings (-> params :let :bindings)

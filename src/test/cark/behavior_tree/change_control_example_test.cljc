@@ -410,3 +410,6 @@
           (is (= #{[:send-mail [:mail :production]]
                    [:send-mail [:mail :legal]]}
                  (-> ctx (bt/send-event :seal-document) bt/tick bt/get-events set))))))))
+
+
+;; now we're done, we can extract the definitions to their own file, keeping these tests around.

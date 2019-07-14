@@ -1,4 +1,7 @@
 (ns cark.behavior-tree.node-defs.guard-selector
+  "The :guard-selector node may only have :guard children.
+It will check each of its children's predicate until it finds one that succeed.
+It will then run the child's payload, possibly interrupting another previously running child payload."
   (:require [cark.behavior-tree.context :as ctx]
             [cark.behavior-tree.db :as db]
             [cark.behavior-tree.tree :as tree]
@@ -31,7 +34,7 @@
                                                 [ctx nil]))
                         ;; stop irrelevant payload
                         ctx (if (and run-index (not= run-index new-run-index))
-                              (ctx/set-node-status ctx run-index :fresh)
+                              (ctx/set-node-status ctx (get payload-ids run-index) :fresh)
                               ctx)]
                     ;; run payload
                     (if new-run-index
