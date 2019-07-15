@@ -57,7 +57,7 @@ These nodes have a single child
 - :on-event : tests for the presence of an event, possibly waiting for it, before executing its child, binding the event arg to a var
 - :trace : Activates tracing for the subtree it is the root of. Use for debugging.
 #### Branch nodes
-This nodes have several children
+These nodes have several children
 - :sequence : This node ticks its children one by one, succeeding when they all succeed, or failing if any fails.
 - :seletor : This node ticks its children one by one, succeeding if any of these succeeds, or failing if they all fail.
 - :parallel : This node tick all its children "concurrently", succeeding or failing according to its policy parameter.
