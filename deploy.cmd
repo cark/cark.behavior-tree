@@ -1,7 +1,8 @@
 del pom.xml
+copy start-pom.xml pom.xml
 clojure -Spom
 clojure -A:release %1
 clojure -A:garamond
-clojure -A:jar
-clojure -A:deploy
-git push --tags
+REM clojure -A:jar
+REM clojure -A:deploy
+REM git push --tags
