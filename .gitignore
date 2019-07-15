@@ -7,7 +7,6 @@ public/js
 /src/meta
 extension/out/
 extension/manifest.json
-start-pom.xml
 pom.xml
 pom.xml.asc
 *.iml

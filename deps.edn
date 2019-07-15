@@ -7,15 +7,12 @@
                            :main-opts   ["-m" "kaocha.runner"]
                            :extra-deps  {lambdaisland/kaocha      {:mvn/version "0.0-521"}
                                          lambdaisland/kaocha-cljs {:mvn/version "0.0-32"}}}           
-           :jar           {:extra-deps {seancorfield/depstar {:mvn/version "0.2.1"}}
-                           :main-opts  ["-m" "hf.depstar.jar" "target/cark.behavior-tree.jar"]}
            :dev           {:extra-paths ["src/test" "src/dev"]
                            :jvm-opts    ["-XX:-OmitStackTraceInFastThrow"]
                            :extra-deps  {org.clojure/clojurescript  {:mvn/version "1.10.520"}
                                          thheller/shadow-cljs       {:mvn/version "2.8.37"}
                                          binaryage/devtools         {:mvn/version "0.9.10"}
                                          lilactown/punk-adapter-web {:mvn/version "0.0.7"}}}
-           ;;:deploy {:extra-paths ["src/meta" "src/deploy"]}
            :garamond      {:main-opts  ["-m" "garamond.main"
                                         "-p" ""
                                         "-g" "cark"
@@ -35,7 +32,4 @@
                                          "-r" "cark.behavior-tree"
                                          "--output-dir" "src/meta"
                                          "--namespace" "cark.behavior-tree.meta"
-                                         "--formats" "cljc"]}
-           :deploy        {:extra-deps {deps-deploy {:mvn/version "RELEASE"}}
-                           :main-opts  ["-m" "deps-deploy.deps-deploy" "deploy"
-                                        "target/cark.behavior-tree.jar"]}}}
+                                         "--formats" "cljc"]}}}

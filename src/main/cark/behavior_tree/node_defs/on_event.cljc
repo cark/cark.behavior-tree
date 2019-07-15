@@ -3,10 +3,10 @@
 the event argument to a var and execute its child.
 
 Parameters:
--:event : A keyword, or keyword returning context function. The name of the event to be consumed.
--:pick? : A context function with two parameters. first the tree context, then the event argument being considered. This acts as an additional filter when considering incoming events to be consumed. The event will be consumed if this function returns a truthy value.
--:wait? : A boolean, or boolean returning context function. When true the node will stay :running until the event is consumed.
--:bind-arg : the keyword name of the var to which the event argument will be bound."
+- :event : A keyword, or keyword returning context function. The name of the event to be consumed.
+- :pick? : A context function with two parameters. first the tree context, then the event argument being considered. This acts as an additional filter when considering incoming events to be consumed. The event will be consumed if this function returns a truthy value.
+- :wait? : A boolean, or boolean returning context function. When true the node will stay :running until the event is consumed.
+- :bind-arg : the keyword name of the var to which the event argument will be bound."
   (:require [cark.behavior-tree.context :as ctx]
             [cark.behavior-tree.db :as db]
             [cark.behavior-tree.tree :as tree]
