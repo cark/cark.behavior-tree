@@ -1,4 +1,0 @@
-link:https://clojars.org/cark/cark.behavior-tree[https://img.shields.io/clojars/v/cark/cark.behavior-tree.svg]
-link:https://cljdoc.org/d/cark/cark.behavior-tree/CURRENT[https://cljdoc.org/badge/cark/cark.behavior-tree]
-= cark.behavior-tree
-
