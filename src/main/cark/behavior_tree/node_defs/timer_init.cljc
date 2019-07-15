@@ -1,4 +1,8 @@
 (ns cark.behavior-tree.node-defs.timer-init
+  "The :timer-init node initializes the start time for the specified named timer.
+parameters :
+- :timer : a keyword, or keyword returning context function. The name of the timer to be initialized.
+- :time : an optional integer, or integer returning context function. The time at which the named timer will be starting."
   (:require [cark.behavior-tree.context :as ctx]
             [cark.behavior-tree.db :as db]
             [cark.behavior-tree.tree :as tree]
