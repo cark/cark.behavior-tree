@@ -33,7 +33,7 @@ This implementation communicates with the outside world via incoming and outgoin
 The behavior tree's database has a blackboard key which contains the application specific data. The tree can
 act or react on/to this data. The user can also update its value between tick invokations.
 ### Nodes
-This is a little overview, the nodes are described in more details in cljdocs.
+This is a little overview, the nodes are described in more details in the [node definitions documentation](https://cljdoc.org/d/cark/cark.behavior-tree/CURRENT/api/cark.behavior-tree.node-defs).
 #### Leaf nodes
 These node have no children.
 - :update : updates the tree context, using the func parameter.
