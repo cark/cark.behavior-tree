@@ -1,8 +1,8 @@
 (ns cark.behavior-tree.node-defs.repeat
   "The :repeat node will refresh and repeat its child.
 parameters :
-- :count : An integer, or integer returning context function. Once the count is reached, that is when the child succeeded or failed \"count\" times, the node succeeds.
-- :while : A predicate context function that is called on each iteration, the node succeeds as soon as this returns a falsy value"
+- :count : An optional integer, or integer returning context function. Once the count is reached, that is when the child succeeded or failed \"count\" times, the node succeeds.
+- :while : An optional predicate context function that is called on each iteration, the node succeeds as soon as this returns a falsy value"
   (:require [cark.behavior-tree.context :as ctx]
             [cark.behavior-tree.db :as db]
             [cark.behavior-tree.tree :as tree]
