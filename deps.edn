@@ -19,14 +19,14 @@
                                         "-a" "cark.behavior-tree"
                                         "-u" "https://github.com/cark/cark.behavior-tree"]
                            :extra-deps {com.workframe/garamond {:mvn/version "0.4.0"}}}
-           :metav         {:extra-deps {metav {:mvn/version "1.5.1"}}}
-           :artifact-name {:extra-deps {metav {:mvn/version "1.5.1"}}
+           :metav         {:extra-deps {metav {:mvn/version "1.5.1-SNAPSHOT"}}}
+           :artifact-name {:extra-deps {metav {:mvn/version "1.5.1-SNAPSHOT"}}
                            :main-opts  ["-m" "metav.display"
                                         "-r" "cark.behavior-tree"]}
-           :release       {:extra-deps {metav {:mvn/version "1.5.1"}}
+           :release       {:extra-deps {metav {:mvn/version "1.5.1-SNAPSHOT"}}
                            :main-opts  ["-m" "metav.release"
                                         "-r" "cark.behavior-tree"]}
-           :spit          {:extra-deps  {metav {:mvn/version "1.5.1"}}
+           :spit          {:extra-deps  {metav {:mvn/version "1.5.1-SNAPSHOT"}}
                            :extra-paths ["src/meta"] 
                            :main-opts   ["-m" "metav.spit"
                                          "-r" "cark.behavior-tree"
