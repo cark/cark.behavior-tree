@@ -32,6 +32,8 @@ This implementation communicates with the outside world via incoming and outgoin
 ### The blackboard
 The behavior tree's database has a blackboard key which contains the application specific data. The tree can
 act or react on/to this data. The user can also update its value between tick invokations.
+
+The [core namespace](https://cljdoc.org/d/cark/cark.behavior-tree/CURRENT/api/cark.behavior-tree.core) defines a whole menagerie of functions to query and manipulate the blackboard. These functions have their names starting with `bb-`.
 ### Nodes
 This is a little overview, the nodes are described in more details in the [node definitions documentation](https://cljdoc.org/d/cark/cark.behavior-tree/CURRENT/api/cark.behavior-tree.node-defs).
 #### Leaf nodes
@@ -97,10 +99,7 @@ The tree is described with a hiccup-like notation, then compiled to a more effic
 ```
 
 ## Tests
-There are quite a few tests that should help in understanding how the tree works. In the src/test directory, you'll also find a
-couple real world'ish examples.
-
-Of particular interest is the [change control example](https://github.com/cark/cark.behavior-tree/blob/master/src/test/cark/behavior_tree/change_control_example_test.cljc) were we present the process of coming up with a working, modular behavior tree, testing each part along the way. That example exercises many of the primitives provided by this library.
+There are quite a few tests that should help in understanding how the tree works. 
 
 They all can be run, for both clojurescript and clojure, with these commands :
 ```
@@ -115,7 +114,10 @@ It is also possible to run the clojurescript tests with shadow-cljs in your pref
 ```
 
 You then can navigate to http://localhost:8022/ and see the test results.
+## Examples
+In the src/test directory, you'll find a couple real world'ish examples.
 
+Of particular interest is the [change control example](https://github.com/cark/cark.behavior-tree/blob/master/src/test/cark/behavior_tree/change_control_example_test.cljc) were we present the process of coming up with a working, modular behavior tree, testing each part along the way. That example exercises many of the primitives provided by this library.
 ## License
 Copyright (c) Sacha De Vos and contributors. All rights reserved.
 

@@ -43,7 +43,7 @@ time parameter specifies at which time (in milliseconds) the tick is supposed to
   (db/get-node-status ctx (tree/get-root-node-id ctx)))
 
 (defn hiccup->context
-  "Takes an hissup behavior tree definition and returns a behavior tree context, ready to be ticked."
+  "Takes an hiccup behavior tree definition and returns a behavior tree context, ready to be ticked."
   ([hiccup]
    (hiccup->context ctx/base hiccup))
   ([ctx hiccup]
@@ -125,7 +125,7 @@ and the params as the rest."
       (db/update-blackboard ctx #(assoc-in % path value)))))
 
 (defn get-var
-  "Returns the value a variable previously bound, for instance by the :bind node"
+  "Returns the value a previously bound variable, for instance by the :bind node"
   [ctx name]
   (de/get-var ctx name))
 
@@ -137,7 +137,7 @@ and the params as the rest."
 
 (defn get-events
   "Returns a vector of all the events that were raised during the last tick of the tree. Each event is a vector pair
-with the event name as its first element, and the event argument as its second element, or nil if there is none."
+with the event name as its first element, and the event argument as its second element, or nil if there is no argument."
   [ctx]
   (event/get-events-out ctx))
 

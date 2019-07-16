@@ -42,7 +42,7 @@ Wherever a node has a function parameter, the context map is always the first (a
   (make (db/make) (tree/make)))
 
 (defn get-max-tick-count
-  "Returns the maximum number of node tick that may occur during a single tree tick. 
+  "Returns the maximum number of node ticks that may occur during a single tree tick. 
 An error will be thrown if this number is exceeded."
   [context]
   (::max-tick-count context))
@@ -58,7 +58,7 @@ An error will be thrown if this number is exceeded."
   (assoc context ::tick-count 0))
 
 (defn get-tick-count
-  "Returns the current tick count since the start fot the tree tick evaluation."
+  "Returns the current tick count since the start of the tree tick evaluation."
   [context]
   (::tick-count context))
 
@@ -110,7 +110,7 @@ An error will be thrown if this number is exceeded."
 
 (defn do-nodes
   "Applies the func to each of the provided nodes, threading the context along.
-func will be called with the threaded context and a node-id"
+func will be called with the threaded context and a node-id, and must return a possibly updated context."
   [ctx node-ids func]
   (reduce (fn [ctx node-id]
             (func ctx node-id))
@@ -127,7 +127,7 @@ func will be called with the threaded context and a node-id"
   (:children-ids (tree/get-node-meta ctx node-id)))
 
 (defn cancel
-  "Resets the node's children, removes its data from the database, and tick the cancel node if this is an on-cancel node."
+  "Resets the node's children, removes its data from the database, and, when the node is an on-cancel node, ticks its cancel child node."
   [ctx node-id]
   (-> (if (= :on-cancel (:tag (tree/get-node-meta ctx node-id)))
         ((tree/get-node ctx node-id) (inc-tick-count ctx) :cancel)

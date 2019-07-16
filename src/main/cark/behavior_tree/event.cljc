@@ -1,6 +1,6 @@
 (ns cark.behavior-tree.event
   "The event maps keep the events coming in from the outside world and going out to it.
-We made the choice of raising errors if some events in are left unconsumed."
+We made the choice of raising errors if some incoming events are left unconsumed."
   (:refer-clojure :exclude [keys]))
 
 (def keys #{::events-out ::events-in})
@@ -34,7 +34,7 @@ We made the choice of raising errors if some events in are left unconsumed."
 ;; in
 
 (defn update-events-in
-  "Updates the inbound events witht eh provided function"
+  "Updates the inbound events with the provided function"
   [events func]
   (update events ::events-in func))
 
