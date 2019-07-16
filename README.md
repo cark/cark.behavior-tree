@@ -19,7 +19,10 @@ A behavior tree implementation for clojure and clojurescript. Also includes a st
 ## What is a behavior tree ?
 This implementation started with the idea that the game AI behavior trees could find a place in regular application developement. 
 
-These trees are processing nodes in a depth first manner, leaving these in one of 4 states:
+There are many flavors of behavior trees. This one takes inspiration on the libgdx behavior trees. Although we had to adapt our implementation to our functional purity 
+requirements, it might be a good idea to read their excellent [libgdx behavior trees documentation](https://github.com/libgdx/gdx-ai/wiki/Behavior-Trees).
+
+This implementation is processing nodes in a depth first manner, leaving these in one of 4 states:
 - :fresh : The node is ready to be used for the "first time"
 - :running : The node is currently running, probably waiting some sort of condition before reaching its final state
 - :success and :failure : The node has reached its final state, this result is cached and the node will not be rerun until being "refreshed"
