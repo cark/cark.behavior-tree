@@ -100,6 +100,8 @@ The tree is described with a hiccup-like notation, then compiled to a more effic
 There are quite a few tests that should help in understanding how the tree works. In the src/test directory, you'll also find a
 couple real world'ish examples.
 
+Of particular interest is the [change control example](https://github.com/cark/cark.behavior-tree/blob/master/src/test/cark/behavior_tree/change_control_example_test.cljc) were we present the process of coming up with a working, modular behavior tree, testing each part along the way. That example exercises many of the primitives provided by this library.
+
 They all can be run, for both clojurescript and clojure, with these commands :
 ```
   npm install
