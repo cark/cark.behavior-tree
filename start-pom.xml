@@ -34,4 +34,11 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
+  <licenses>
+    <license>
+      <name>Eclipse Public License 1.0</name>
+      <url>http://opensource.org/licenses/eclipse-1.0.php</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
 </project>
