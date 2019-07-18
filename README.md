@@ -103,8 +103,9 @@ The tree is described with a hiccup-like notation, then compiled to a more effic
 ## State machines
 In the [cark.behavior-tree.state-machine namespace](https://cljdoc.org/d/cark/cark.behavior-tree/CURRENT/api/cark.behavior-tree.state-machine), we present an implementation of state machines based on the primitives offered by the behavior trees. The functions of this namespace are indeed merely producing a hiccup tree that will then need to be compiled with the [bt/hiccup->context](), like any other regular behavior tree.
 
-Compared to a hand coded state machine, our implementation has poor performances. On the other hand, it brings the full power of the behavior trees with it. We gain the benefits of the blackboard, and such a state machine may be used a part of a behavior tree, or use full sub-trees as event handlers. That means that we automatically support hierarchical and parallel state machines, although special care must then be taken with event naming and blackboard paths.
+Compared to a hand coded state machine, our implementation has poor performances (though still sub millisecond ticks on unoptimized clojurescript!). On the other hand, it brings the full power of the behavior trees with it. First we gain the benefits of the blackboard. Also such a state machine may be used as part of a behavior tree, or use full sub-trees as event handlers. That means that we automatically support hierarchical and parallel state machines, although special care must then be taken with event naming and blackboard paths.
 
+If nothing else, this state machine implementation illustrates how the relatively verbose behavior tree hiccup notation can be encapsulated into higher level, more specialized constructs.
 ### A quick example
 ```clojure
 ;; we model the UI for a backup and restore dialog
@@ -114,8 +115,8 @@ Compared to a hand coded state machine, our implementation has poor performances
           (sm/enter-event [:update {:func (bt/bb-updater-in [:flags] set/union #{:restore-button :backup-button})}])
           (sm/event :restore-pressed (sm/transition :restore))
           (sm/event :backup-pressed (sm/transition :backup))
-          (sm/event :ok-pressed [:update {:func (bt/bb-updater-in [:flags] set/difference #{:success-dialog
-                                                                                            :error-dialog})}]))
+          (sm/event :ok-pressed 
+		    [:update {:func (bt/bb-updater-in [:flags] set/difference #{:success-dialog :error-dialog})}]))
         (sm/state :backup
           (sm/enter-event
            [:sequence
