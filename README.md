@@ -100,6 +100,50 @@ The tree is described with a hiccup-like notation, then compiled to a more effic
     (is (= :green (-> traffic-light (bt/tick+ 120000) bt/bb-get)))
     (is (= :yellow (-> traffic-light (bt/tick+ 170000) bt/bb-get))))
 ```
+## State machines
+In the [cark.behavior-tree.state-machine namespace](https://cljdoc.org/d/cark/cark.behavior-tree/CURRENT/api/cark.behavior-tree.state-machine), we present an implementation of state machines based on the primitives offered by the behavior trees. The functions of this namespace are indeed merely producing a hiccup tree that will then need to be compiled with the [bt/hiccup->context](), like any other regular behavior tree.
+
+Compared to a hand coded state machine, our implementation has poor performances. On the other hand, it brings the full power of the behavior trees with it. We gain the benefits of the blackboard, and such a state machine may be used a part of a behavior tree, or use full sub-trees as event handlers. That means that we automatically support hierarchical and parallel state machines, although special care must then be taken with event naming and blackboard paths.
+
+### A quick example
+```clojure
+;; we model the UI for a backup and restore dialog
+(def ctx
+  (-> (sm/make [:sm] :start
+        (sm/state :start
+          (sm/enter-event [:update {:func (bt/bb-updater-in [:flags] set/union #{:restore-button :backup-button})}])
+          (sm/event :restore-pressed (sm/transition :restore))
+          (sm/event :backup-pressed (sm/transition :backup))
+          (sm/event :ok-pressed [:update {:func (bt/bb-updater-in [:flags] set/difference #{:success-dialog
+                                                                                            :error-dialog})}]))
+        (sm/state :backup
+          (sm/enter-event
+           [:sequence
+            [:send-event {:event :prepare-backup}]
+            [:update {:func (bt/bb-assocer-in [:flags] #{:backuping-dialog})}]])
+          (sm/event :got-database-string
+            [:sequence
+             [:send-event {:event :download-database-string :arg sm/event-arg}]
+             [:update {:func (bt/bb-updater-in [:flags] disj :backuping-dialog)}]
+             (sm/transition :start)]))
+        (sm/state :restore
+          (sm/enter-event [:update {:func (bt/bb-assocer-in [:flags] #{:confirm-dialog})}])
+          (sm/event :cancel-pressed
+            [:sequence
+             [:update {:func (bt/bb-assocer-in [:flags] #{})}]
+             (sm/transition :start)])
+          (sm/event :got-file-data
+            [:sequence
+             [:send-event {:event :restore-file :arg sm/event-arg}]
+             [:update {:func (bt/bb-assocer-in [:flags] #{:restoring-dialog})}]])
+          (sm/event :restore-result
+            [:sequence
+             [:update {:func #(cond-> (bt/bb-update % assoc :flags #{:restore-button :backup-button})
+                                (= :success (sm/event-arg %)) (bt/bb-update-in [:flags] conj :success-dialog)
+                                (= :error (sm/event-arg %)) (bt/bb-update-in [:flags] conj :error-dialog))}]
+             (sm/transition :start)])))
+      bt/hiccup->context bt/tick))
+```
 
 ## Tests
 There are quite a few tests that should help in understanding how the tree works. 
