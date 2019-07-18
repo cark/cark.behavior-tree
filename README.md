@@ -101,7 +101,7 @@ The tree is described with a hiccup-like notation, then compiled to a more effic
     (is (= :yellow (-> traffic-light (bt/tick+ 170000) bt/bb-get))))
 ```
 ## State machines
-In the [cark.behavior-tree.state-machine namespace](https://cljdoc.org/d/cark/cark.behavior-tree/CURRENT/api/cark.behavior-tree.state-machine), we present an implementation of state machines based on the primitives offered by the behavior trees. The functions of this namespace are indeed merely producing a hiccup tree that will then need to be compiled with the [bt/hiccup->context](https://cljdoc.org/d/cark/cark.behavior-tree/0.1.12/api/cark.behavior-tree.core#hiccup-%3Econtext), like any other regular behavior tree.
+In the [cark.behavior-tree.state-machine namespace](https://cljdoc.org/d/cark/cark.behavior-tree/CURRENT/api/cark.behavior-tree.state-machine), we present an implementation of state machines based on the primitives offered by the behavior trees. The functions of this namespace are indeed merely producing a hiccup tree that will then need to be compiled with the [bt/hiccup->context](https://cljdoc.org/d/cark/cark.behavior-tree/CURRENT/api/cark.behavior-tree.core#hiccup-%3Econtext), like any other regular behavior tree.
 
 Compared to a hand coded state machine, our implementation has poor performances (though still quite fast!). On the other hand, it brings the full power of the behavior trees with it. First we gain the benefits of the blackboard. Also such a state machine may be included inside a behavior tree, or use full sub-trees as event handlers. That means that we automatically support hierarchical and parallel state machines, although special care must then be taken with event naming and blackboard paths.
 
