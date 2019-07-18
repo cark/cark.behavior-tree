@@ -72,7 +72,7 @@ These nodes have several children
 ### Extending
 Extending the tree with new nodes is expected and probably necessary depending on the use cases. Ping me on slack (Carkh) if the need arises and you can't figure it out.
 ### Hiccup
-The tree is described with a hiccup-like notation, then compiled to a more efficient data structure. Many of the parameters defined for different node types can take either a value or a function, that will then be executed receiving the tree context as its parameter. Additional keys may be passed to this parameter map with no adverse effect.
+The tree is described with a hiccup-like notation, then compiled to a more efficient data structure. Many of the parameters defined for different node types can take either a value or a function, that will then be executed receiving the tree context as its parameter. Additional keys may be passed to a node's parameter map with no adverse effect.
 ## A Quick example
 ```clojure
   ;; we define a traffic light that goes through all colors

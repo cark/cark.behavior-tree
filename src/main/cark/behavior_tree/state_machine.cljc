@@ -21,6 +21,7 @@ behavior tree."
 (defn make
   "Creates the hiccup for a state machine. Its data will be stored in the black board at 
 the specified path. Upon entering this node, the initial state will directly be activated."
+  {:style/indent :defn}
   [path initial-state & states]
   [:bind {:let [::path (vec path)]}
    [:sequence
@@ -29,6 +30,7 @@ the specified path. Upon entering this node, the initial state will directly be 
 
 (defn end-state
   "Creates an end state. While this node returns a failure, the state machine will succeed."
+  {:style/indent :defn}
   ([name]
    [:sequence {:id name} (in-state? name)
     [:failure-leaf]])
@@ -38,6 +40,7 @@ the specified path. Upon entering this node, the initial state will directly be 
 
 (defn event
   "Creates an event in the hiccup tree. Once the event is triggered, the provided node will be executed."
+  {:style/indent :defn}
   [name node]
   [:event name node])
 
@@ -49,6 +52,7 @@ This also trigger when transitioning from the same state, but not when another e
 
 (defn state
   "Creates a state, with its associated events"
+  {:style/indent :defn}
   ([name & events]
    (let [{:keys [event enter-event]} (group-by first events)
          make-event (fn [[_ event-name node]]

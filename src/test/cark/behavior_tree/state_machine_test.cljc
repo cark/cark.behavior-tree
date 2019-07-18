@@ -21,9 +21,13 @@
 
 (deftest simple-test
   (let [tree (-> (sm/make [:sm] :green
-                          (sm/state :green (sm/event :advance (sm/transition :yellow)))
-                          (sm/state :yellow (sm/event :advance (sm/transition :red)))
-                          (sm/state :red (sm/event :advance (sm/transition :green))))
+                   (sm/state :green
+                     (sm/event :advance
+                       (sm/transition :yellow)))
+                   (sm/state :yellow
+                     (sm/event :advance (sm/transition :red)))
+                   (sm/state :red
+                     (sm/event :advance (sm/transition :green))))
                  bt/hiccup->context bt/tick)
         advance (fn [tree] (-> tree (bt/send-event :advance) bt/tick))]
     (is (= :green (-> tree get-state)))
