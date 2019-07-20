@@ -2,7 +2,8 @@
   (:require [clojure.test :as t :refer [deftest is]]
             [cark.behavior-tree.core :as bt]
             [cark.behavior-tree.state-machine :as sm]
-            [cark.behavior-tree.context :as ctx]))
+            [cark.behavior-tree.context :as ctx]
+            [clojure.set :as set]))
 
 ;; we define a backup restore page
 ;;
@@ -19,156 +20,115 @@
 ;; - success : open a success dialog having an ok button, activate restore button
 ;; - failure : open a failure dialog having an ok button, activate restore button
 ;;
-;; This would usually be developped bottom up, step by step, with testing along the way,
-;; but i felt adventurous on this one.
+
+(def ctx
+  (-> (sm/make [:sm] :start
+        (sm/state :start
+          (sm/enter-event [:update {:func (bt/bb-updater-in [:flags] set/union #{:restore-button})}])
+          (sm/event :restore-pressed (sm/transition :restore))
+          (sm/event :ok-pressed
+            [:update {:func (bt/bb-updater-in [:flags] set/difference #{:success-dialog
+                                                                        :error-dialog})}]))
+        (sm/state :restore
+          (sm/enter-event [:update {:func (bt/bb-assocer-in [:flags] #{:confirm-dialog})}])
+          (sm/event :cancel-pressed
+            [:sequence
+             [:update {:func (bt/bb-assocer-in [:flags] #{})}]
+             (sm/transition :start)])
+          (sm/event :got-file-data
+            [:sequence
+             [:send-event {:event :restore-file :arg sm/event-arg}]
+             [:update {:func (bt/bb-assocer-in [:flags] #{:restoring-dialog})}]])
+          (sm/event :restore-result
+            [:sequence
+             [:update {:func
+                       #(cond-> (bt/bb-update % assoc :flags #{:restore-button})
+                          (= :success (first (sm/event-arg %))) (bt/bb-update-in [:flags] conj :success-dialog)
+                          (= :error (first (sm/event-arg %))) (-> (bt/bb-update-in [:flags] conj :error-dialog)
+                                                                  (bt/bb-update assoc :error (second (sm/event-arg %)))))}]
+             (sm/transition :start)])))
+      bt/hiccup->context bt/tick))
 
 (deftest restore-test
-  (let [ctx (-> [:sequence
-                 ;;init
-                 [:update {:func (bt/bb-updater assoc
-                                                :restore-button true
-                                                :confirm-dialog false
-                                                :restoring-dialog false
-                                                :success-dialog false
-                                                :error-dialog false)}]
-                 ;;keep running
-                 [:repeat
-                  [:parallel {:policy :select}
-                   ;; the start point, checking the restore button
-                   [:guard [:predicate {:func (bt/bb-getter-in [:restore-button])}]
-                    [:on-event {:event :restore-pressed}
-                     [:update {:func (bt/bb-updater assoc
-                                                    :restore-button false
-                                                    :confirm-dialog true
-                                                    :success-dialog false
-                                                    :error-dialog false)}]]]
-                   ;; confirm dialog
-                   [:guard [:predicate {:func (bt/bb-getter-in [:confirm-dialog])}]
-                    [:parallel {:policy :select :rerun-children true} ;; we have to rerun to work around the html5 spec bug
-                     [:on-event {:event :cancel-pressed}
-                      [:update {:func (bt/bb-updater assoc
-                                                     :restore-button true
-                                                     :confirm-dialog false)}]]
-                     [:on-event {:event :confirm-pressed}
-                      [:send-event {:event :open-file-dialog}]]]]
-                   ;; got file data
-                   [:on-event {:event :got-file-data :bind-arg :file-data}
-                    [:sequence
-                     [:update {:func (bt/bb-updater assoc
-                                                    :confirm-dialog false
-                                                    :restoring-dialog true)}]
-                     [:send-event {:event :restore-file :arg (bt/var-getter :file-data)}]]]
-                   ;; got restore operation result
-                   [:on-event {:event :restore-result :bind-arg :result}
-                    [:update {:func #(bt/bb-update % assoc
-                                                   :restoring-dialog false
-                                                   :restore-button true
-                                                   :success-dialog (= :success (bt/get-var % :result))
-                                                   :error-dialog (= :error (bt/get-var % :result)))}]]
-                   ;; success dialog
-                   [:guard [:predicate {:func (bt/bb-getter-in [:success-dialog])}]
-                    [:on-event {:event :ok-pressed}
-                     [:update {:func (bt/bb-updater assoc :success-dialog false)}]]]
-                   ;; error dialog
-                   [:guard [:predicate {:func (bt/bb-getter-in [:error-dialog])}]
-                    [:on-event {:event :ok-pressed}
-                     [:update {:func (bt/bb-updater assoc :error-dialog false)}]]]]]]
-                bt/hiccup->context bt/tick)
+  (let [ctx (-> ctx)
         send-event (fn send-event
                      ([ctx event]
                       (send-event ctx event nil))
                      ([ctx event arg]
-                      (-> (bt/send-event ctx event arg))))
+                      (bt/send-event ctx event arg)))
         send-events (fn send-events [ctx & events]
                       (reduce #(apply send-event %1 %2)
                               ctx (map #(if (seqable? %) % [%]) events)))]
     (is ctx)
     
-    (is (-> ctx (bt/bb-get-in [:restore-button])))
+    (is (-> ctx (bt/bb-get-in [:flags :restore-button])))
     
     (is (= :running (-> (send-events ctx :restore-pressed)
                         bt/get-status)))
     
     (is (not (-> (send-events ctx :restore-pressed)
-                 (bt/bb-get-in [:restore-button]))))
+                 (bt/bb-get-in [:flags :restore-button])))) 
     
     (is (-> (send-events ctx :restore-pressed)
-            (bt/bb-get-in [:confirm-dialog])))
+            (bt/bb-get-in [:flags :confirm-dialog])))
     
     (is (not (-> (send-events ctx :restore-pressed :cancel-pressed)
-                 (bt/bb-get-in [:confirm-dialog]))))
+                 (bt/bb-get-in [:flags :confirm-dialog]))))
     
     (is (-> (send-events ctx :restore-pressed :cancel-pressed)
-            (bt/bb-get-in [:restore-button])))
+            (bt/bb-get-in [:flags :restore-button])))
     
     (is (not (-> (send-events ctx :restore-pressed :cancel-pressed :restore-pressed)
-                 (bt/bb-get-in [:restore-button]))))
+                 (bt/bb-get-in [:flags :restore-button]))))
     
     (is (-> (send-events ctx :restore-pressed :cancel-pressed :restore-pressed)
-            (bt/bb-get-in [:confirm-dialog])))
-    
-    (is (-> (send-events ctx :restore-pressed :confirm-pressed)
-            (bt/bb-get-in [:confirm-dialog])))
-    
-    (is (= [[:open-file-dialog nil]]
-           (-> (send-events ctx :restore-pressed :confirm-pressed)
-               bt/get-events)))
-    
-    (is (= [[:open-file-dialog nil]]
-           (-> (send-events ctx :restore-pressed :confirm-pressed :confirm-pressed)
-               bt/get-events)))
-    
-    (is (not (-> (send-events ctx :restore-pressed :confirm-pressed :cancel-pressed)
-                 (bt/bb-get-in [:confirm-dialog]))))
-    
-    (is (-> (send-events ctx :restore-pressed :confirm-pressed :cancel-pressed)
-            (bt/bb-get-in [:restore-button])))
+            (bt/bb-get-in [:flags :confirm-dialog])))
 
-    (let [ctx (send-events ctx :restore-pressed :confirm-pressed [:got-file-data :some-data])]
+    (let [ctx (send-events ctx :restore-pressed [:got-file-data :some-data])]
       ;; this new context has received file data
       
       (is (= [[:restore-file :some-data]]
              (-> ctx bt/get-events)))
       
-      (is (not (-> ctx (bt/bb-get-in [:confirm-dialog]))))
+      (is (not (-> ctx (bt/bb-get-in [:flags :confirm-dialog]))))
       
-      (is (-> ctx (bt/bb-get-in [:restoring-dialog])))
+      (is (-> ctx (bt/bb-get-in [:flags :restoring-dialog])))
       
-      (is (not (-> (send-events ctx [:restore-result :success])
-                   (bt/bb-get-in [:restoring-dialog]))))
+      (is (not (-> (send-events ctx [:restore-result [:success]])
+                   (bt/bb-get-in [:flags :restoring-dialog]))))
       
-      (is (-> (send-events ctx [:restore-result :success])
-              (bt/bb-get-in [:success-dialog])))
+      (is (-> (send-events ctx [:restore-result [:success]])
+              (bt/bb-get-in [:flags :success-dialog])))
       
-      (is (not (-> (send-events ctx [:restore-result :success])
-                   (bt/bb-get-in [:error-dialog]))))
+      (is (not (-> (send-events ctx [:restore-result [:success]])
+                   (bt/bb-get-in [:flags :error-dialog]))))
       
-      (is (-> (send-events ctx [:restore-result :success])
-              (bt/bb-get-in [:restore-button])))
+      (is (-> (send-events ctx [:restore-result [:success]])
+              (bt/bb-get-in [:flags :restore-button])))
 
-      (is (not (-> (send-events ctx [:restore-result :error])
-                   (bt/bb-get-in [:restoring-dialog]))))
+      (is (not (-> (send-events ctx [:restore-result [:error :bleh]])
+                   (bt/bb-get-in [:flags :restoring-dialog]))))
       
-      (is (-> (send-events ctx [:restore-result :error])
-              (bt/bb-get-in [:error-dialog])))
+      (is (-> (send-events ctx [:restore-result [:error :blah]])
+              (bt/bb-get-in [:flags :error-dialog])))
       
-      (is (not (-> (send-events ctx [:restore-result :error])
-                   (bt/bb-get-in [:success-dialog]))))
+      (is (not (-> (send-events ctx [:restore-result [:error :blah]])
+                   (bt/bb-get-in [:flags :success-dialog]))))
       
-      (is (-> (send-events ctx [:restore-result :success])
-              (bt/bb-get-in [:restore-button])))
+      (is (-> (send-events ctx [:restore-result [:success]])
+              (bt/bb-get-in [:flags :restore-button])))
 
-      (is (not (-> (send-events ctx [:restore-result :success] :ok-pressed)
-                   (bt/bb-get-in [:success-dialog]))))
+      (is (not (-> (send-events ctx [:restore-result [:success]] :ok-pressed)
+                   (bt/bb-get-in [:flags :success-dialog]))))
       
-      (is (not (-> (send-events ctx [:restore-result :error] :ok-pressed)
-                   (bt/bb-get-in [:error-dialog]))))
+      (is (not (-> (send-events ctx [:restore-result [:error :blah]] :ok-pressed)
+                   (bt/bb-get-in [:flags :error-dialog]))))
 
-      (is (not (-> (send-events ctx [:restore-result :error] :restore-pressed)
-                   (bt/bb-get-in [:restore-button]))))
+      (is (not (-> (send-events ctx [:restore-result [:error :blah]] :restore-pressed)
+                   (bt/bb-get-in [:flags :restore-button]))))
       
-      (is (-> (send-events ctx [:restore-result :error] :restore-pressed)
-              (bt/bb-get-in [:confirm-dialog])))
+      (is (-> (send-events ctx [:restore-result [:error :blah]] :restore-pressed)
+              (bt/bb-get-in [:flags :confirm-dialog])))
 
-      (is (not (-> (send-events ctx [:restore-result :error] :restore-pressed)
-                   (bt/bb-get-in [:error-dialog])))))))
+      (is (not (-> (send-events ctx [:restore-result [:error :blah]] :restore-pressed)
+                   (bt/bb-get-in [:flags :error-dialog])))))))
