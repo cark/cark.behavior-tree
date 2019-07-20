@@ -96,20 +96,14 @@
 (deftest parallel-test
   (let [ctx (-> [:parallel {:policy :select}
                  (sm/make [:aba] :a
-                   (sm/state :a
-                     (sm/event :a (sm/transition :ab)))
-                   (sm/state :ab
-                     (sm/event :b (sm/transition :aba)))
-                   (sm/state :aba
-                     (sm/event :a (sm/transition :end)))
+                   (sm/state :a (sm/event :a (sm/transition :ab)))
+                   (sm/state :ab (sm/event :b (sm/transition :aba)))
+                   (sm/state :aba (sm/event :a (sm/transition :end)))
                    (sm/end-state :end))
                  (sm/make [:abb] :a
-                   (sm/state :a
-                     (sm/event :a (sm/transition :ab)))
-                   (sm/state :ab
-                     (sm/event :b (sm/transition :abb)))
-                   (sm/state :abb
-                     (sm/event :b (sm/transition :end)))
+                   (sm/state :a (sm/event :a (sm/transition :ab)))
+                   (sm/state :ab (sm/event :b (sm/transition :abb)))
+                   (sm/state :abb (sm/event :b (sm/transition :end)))
                    (sm/end-state :end))]
                 bt/hiccup->context bt/tick)]
     (is (= :running (-> ctx bt/get-status)))
