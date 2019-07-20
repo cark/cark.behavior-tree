@@ -114,7 +114,7 @@
                                                    :approvals #{}
                                                    :stakeholders #{})}])
 
-(def receive-approval [:on-event {:event :approval-received :wait? true :bind-arg :approval-from
+(def receive-approval [:on-event {:event :approval-received :bind-arg :approval-from
                                   :pick? #(= (bt/get-var %1 :department) %2)}
                        [:update {:func #(bt/bb-update-in % [:approvals] conj (bt/get-var % :approval-from))}]])
 
@@ -149,7 +149,7 @@
 
 ;; provide a way to add stakeholders
 
-(def add-stakeholder [:on-event {:event :add-stakeholder :bind-arg :stakeholder :wait? true}
+(def add-stakeholder [:on-event {:event :add-stakeholder :bind-arg :stakeholder}
                       [:sequence
                        [:update {:func #(bt/bb-update-in % [:stakeholders] conj (bt/get-var % :stakeholder))}]
                        [:timer-init {:timer (bt/var-getter :stakeholder)}]]])
@@ -256,8 +256,7 @@
 ;; we need a way to edit the document parts
 
 (defn edit-document-part [part]
-  [:on-event {:event :edit-document :pick? (fn [ctx [arg-part arg-data]] (= part arg-part))
-              :wait? true :bind-arg :edit-arg}
+  [:on-event {:event :edit-document :pick? (fn [ctx [arg-part arg-data]] (= part arg-part)) :bind-arg :edit-arg}
    [:update {:func #(bt/bb-update % assoc-in [:document part] (second (bt/get-var % :edit-arg)))}]])
 
 (deftest edit-document-part-test
@@ -299,7 +298,7 @@
 (def sealable-document [:parallel {:policy :select}
                         edit-document-parts ;; this one will never fail or succeed
                         [:until-success
-                         [:on-event {:event :seal-document :wait? true}
+                         [:on-event {:event :seal-document}
                           [:select
                            [:guard [:predicate {:func #(>= (count (->> (bt/bb-get-in % [:document])
                                                                        (map second)
@@ -343,7 +342,7 @@
 
 (def committee [:sequence
                 [:send-event {:event :go-to-committee}]
-                [:on-event {:event :committee-result :bind-arg :result :wait? true}
+                [:on-event {:event :committee-result :bind-arg :result}
                  [:select
                   [:guard [:predicate {:func #(= :accept (bt/get-var % :result))}]
                    [:send-event {:event :done :arg (constantly :accept)}]]

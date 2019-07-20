@@ -92,3 +92,39 @@
     (is (= :bar (-> ctx (bt/send-event :foo) get-state)))
     (is (= [[:start-baz nil]] (-> (bt/send-event ctx :baz) bt/get-events)))
     (is (= [[:bar-baz nil]] (-> ctx (bt/send-event :foo) (bt/send-event :baz) bt/get-events)))))
+
+(deftest parallel-test
+  (let [ctx (-> [:parallel {:policy :select}
+                 (sm/make [:aba] :a
+                   (sm/state :a
+                     (sm/event :a (sm/transition :ab)))
+                   (sm/state :ab
+                     (sm/event :b (sm/transition :aba)))
+                   (sm/state :aba
+                     (sm/event :a (sm/transition :end)))
+                   (sm/end-state :end))
+                 (sm/make [:abb] :a
+                   (sm/state :a
+                     (sm/event :a (sm/transition :ab)))
+                   (sm/state :ab
+                     (sm/event :b (sm/transition :abb)))
+                   (sm/state :abb
+                     (sm/event :b (sm/transition :end)))
+                   (sm/end-state :end))]
+                bt/hiccup->context bt/tick)]
+    (is (= :running (-> ctx bt/get-status)))
+    (is (= :success (-> ctx
+                        (bt/send-event :a)
+                        (bt/send-event :b)
+                        (bt/send-event :a)
+                        bt/get-status)))
+    (is (= :success (-> ctx
+                        (bt/send-event :a)
+                        (bt/send-event :b)
+                        (bt/send-event :b)
+                        bt/get-status)))
+    (is (= :running (-> ctx
+                        (bt/send-event :a)
+                        (bt/send-event :b)
+                        (bt/send-event :c)
+                        bt/get-status)))))

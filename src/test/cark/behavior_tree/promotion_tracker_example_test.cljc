@@ -18,7 +18,7 @@
   (-> [:map {:seq [:shopping-cart :shop :shopping-cart]
              :bind-item :target-page}
        [:until-success
-        [:on-event {:event :navigate :wait? true :bind-arg :nav-page}
+        [:on-event {:event :navigate :bind-arg :nav-page}
          [:predicate {:func #(= (bt/get-var % :nav-page) (bt/get-var % :target-page))}]]]]
       bt/hiccup->context bt/tick))
 
