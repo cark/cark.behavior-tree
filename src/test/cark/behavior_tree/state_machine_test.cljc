@@ -29,7 +29,7 @@
                    (sm/state :red
                      (sm/event :advance (sm/transition :green))))
                  bt/hiccup->context bt/tick)
-        advance (fn [tree] (-> tree (bt/send-event :advance) bt/tick))]
+        advance (fn [tree] (-> tree (bt/send-event :advance)))]
     (is (= :green (-> tree get-state)))
     (is (= :running (-> tree bt/get-status)))
     (is (= :yellow (-> tree advance get-state)))
@@ -41,10 +41,10 @@
 
 (deftest end-state-test
   (let [tree (-> (sm/make [:sm] :start
-                          (sm/state :start (sm/event :advance (sm/transition :end)))
-                          (sm/end-state :end))
+                   (sm/state :start (sm/event :advance (sm/transition :end)))
+                   (sm/end-state :end))
                  bt/hiccup->context bt/tick)
-        advance (fn [tree] (-> tree (bt/send-event :advance) bt/tick))]
+        advance (fn [tree] (-> tree (bt/send-event :advance)))]
     (is (= :start (-> tree get-state)))
     (is (= :running (-> tree bt/get-status)))
     (is (= :end (-> tree advance get-state)))
@@ -54,19 +54,19 @@
   (let [tree (-> [:sequence
                   [:update {:func (bt/bb-assocer-in [:val] 0)}]
                   (sm/make [:sm] :start
-                           (sm/state :start
-                                     (sm/event :advance (sm/transition :end)))
-                           (sm/state :end
-                                     (sm/enter-event [:update {:func (bt/bb-updater-in [:val] inc)
-                                                               :id :increment-here!}])
-                                     (sm/event :advance (sm/transition :end))
-                                     (sm/event :noop [:update {:func identity}])
-                                     (sm/event :stop (sm/transition :real-end)))
-                           (sm/end-state :real-end))]
+                    (sm/state :start
+                      (sm/event :advance (sm/transition :end)))
+                    (sm/state :end
+                      (sm/enter-event [:update {:func (bt/bb-updater-in [:val] inc)
+                                                :id :increment-here!}])
+                      (sm/event :advance (sm/transition :end))
+                      (sm/event :noop [:update {:func identity}])
+                      (sm/event :stop (sm/transition :real-end)))
+                    (sm/end-state :real-end))]
                  bt/hiccup->context bt/tick)
-        advance (fn [tree] (-> tree (bt/send-event :advance) bt/tick))
-        noop (fn [tree] (-> tree (bt/send-event :noop) bt/tick))
-        stop (fn [tree] (-> tree (bt/send-event :stop) bt/tick))]
+        advance (fn [tree] (-> tree (bt/send-event :advance)))
+        noop (fn [tree] (-> tree (bt/send-event :noop)))
+        stop (fn [tree] (-> tree (bt/send-event :stop)))]
     (is (= :start (-> tree get-state)))
     (is (= :running (-> tree bt/get-status)))
     (is (= 0 (-> tree bt/bb-get :val)))
@@ -81,14 +81,14 @@
 
 (deftest change-state-then-event-also-in-old-state-test
   (let [ctx (-> (sm/make [:sm] :start
-                         (sm/state :start
-                                   (sm/event :foo (sm/transition :bar))
-                                   (sm/event :baz [:send-event {:event :start-baz}]))
-                         (sm/state :bar
-                                   (sm/event :baz [:send-event {:event :bar-baz}])))
+                  (sm/state :start
+                    (sm/event :foo (sm/transition :bar))
+                    (sm/event :baz [:send-event {:event :start-baz}]))
+                  (sm/state :bar
+                    (sm/event :baz [:send-event {:event :bar-baz}])))
                 bt/hiccup->context bt/tick)]
     (is (= :running (bt/get-status ctx)))
     (is (= :start (get-state ctx)))
-    (is (= :bar (-> ctx (bt/send-event :foo) bt/tick get-state)))
-    (is (= [[:start-baz nil]] (-> (bt/send-event ctx :baz) bt/tick bt/get-events)))
-    (is (= [[:bar-baz nil]] (-> ctx (bt/send-event :foo) (bt/send-event :baz) bt/tick bt/get-events)))))
+    (is (= :bar (-> ctx (bt/send-event :foo) get-state)))
+    (is (= [[:start-baz nil]] (-> (bt/send-event ctx :baz) bt/get-events)))
+    (is (= [[:bar-baz nil]] (-> ctx (bt/send-event :foo) (bt/send-event :baz) bt/get-events)))))

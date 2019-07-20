@@ -32,53 +32,53 @@
                                                 :success-dialog false
                                                 :error-dialog false)}]
                  ;;keep running
-                 [:parallel {:policy {:success :every :failure :every} :rerun-children true}
-                  ;; the start point, checking the restore button
-                  [:guard [:predicate {:func (bt/bb-getter-in [:restore-button])}]
-                   [:on-event {:event :restore-pressed :wait? true}
-                    [:update {:func (bt/bb-updater assoc
-                                                   :restore-button false
-                                                   :confirm-dialog true
-                                                   :success-dialog false
-                                                   :error-dialog false)}]]]
-                  ;; confirm dialog
-                  [:guard [:predicate {:func (bt/bb-getter-in [:confirm-dialog])}]
-                   [:parallel {:policy :select :rerun-children true} ;; we have to rerun to work around the html5 spec bug
-                    [:on-event {:event :cancel-pressed :wait? true}
+                 [:repeat
+                  [:parallel {:policy :select}
+                   ;; the start point, checking the restore button
+                   [:guard [:predicate {:func (bt/bb-getter-in [:restore-button])}]
+                    [:on-event {:event :restore-pressed}
                      [:update {:func (bt/bb-updater assoc
-                                                    :restore-button true
-                                                    :confirm-dialog false)}]]
-                    [:on-event {:event :confirm-pressed :wait? true}
-                     [:send-event {:event :open-file-dialog}]]]]
-                  ;; got file data
-                  [:on-event {:event :got-file-data :bind-arg :file-data
-                              :wait? true}
-                   [:sequence
-                    [:update {:func (bt/bb-updater assoc
-                                                   :confirm-dialog false
-                                                   :restoring-dialog true)}]
-                    [:send-event {:event :restore-file :arg (bt/var-getter :file-data)}]]]
-                  ;; got restore operation result
-                  [:on-event {:event :restore-result :bind-arg :result :wait? true}
-                   [:update {:func #(bt/bb-update % assoc
-                                                  :restoring-dialog false
-                                                  :restore-button true
-                                                  :success-dialog (= :success (bt/get-var % :result))
-                                                  :error-dialog (= :error (bt/get-var % :result)))}]]
-                  ;; success dialog
-                  [:guard [:predicate {:func (bt/bb-getter-in [:success-dialog])}]
-                   [:on-event {:event :ok-pressed :wait? true}
-                    [:update {:func (bt/bb-updater assoc :success-dialog false)}]]]
-                  ;; error dialog
-                  [:guard [:predicate {:func (bt/bb-getter-in [:error-dialog])}]
-                   [:on-event {:event :ok-pressed :wait? true}
-                    [:update {:func (bt/bb-updater assoc :error-dialog false)}]]]]]
+                                                    :restore-button false
+                                                    :confirm-dialog true
+                                                    :success-dialog false
+                                                    :error-dialog false)}]]]
+                   ;; confirm dialog
+                   [:guard [:predicate {:func (bt/bb-getter-in [:confirm-dialog])}]
+                    [:parallel {:policy :select :rerun-children true} ;; we have to rerun to work around the html5 spec bug
+                     [:on-event {:event :cancel-pressed}
+                      [:update {:func (bt/bb-updater assoc
+                                                     :restore-button true
+                                                     :confirm-dialog false)}]]
+                     [:on-event {:event :confirm-pressed}
+                      [:send-event {:event :open-file-dialog}]]]]
+                   ;; got file data
+                   [:on-event {:event :got-file-data :bind-arg :file-data}
+                    [:sequence
+                     [:update {:func (bt/bb-updater assoc
+                                                    :confirm-dialog false
+                                                    :restoring-dialog true)}]
+                     [:send-event {:event :restore-file :arg (bt/var-getter :file-data)}]]]
+                   ;; got restore operation result
+                   [:on-event {:event :restore-result :bind-arg :result}
+                    [:update {:func #(bt/bb-update % assoc
+                                                   :restoring-dialog false
+                                                   :restore-button true
+                                                   :success-dialog (= :success (bt/get-var % :result))
+                                                   :error-dialog (= :error (bt/get-var % :result)))}]]
+                   ;; success dialog
+                   [:guard [:predicate {:func (bt/bb-getter-in [:success-dialog])}]
+                    [:on-event {:event :ok-pressed}
+                     [:update {:func (bt/bb-updater assoc :success-dialog false)}]]]
+                   ;; error dialog
+                   [:guard [:predicate {:func (bt/bb-getter-in [:error-dialog])}]
+                    [:on-event {:event :ok-pressed}
+                     [:update {:func (bt/bb-updater assoc :error-dialog false)}]]]]]]
                 bt/hiccup->context bt/tick)
         send-event (fn send-event
                      ([ctx event]
                       (send-event ctx event nil))
                      ([ctx event arg]
-                      (-> (bt/send-event ctx event arg) bt/tick)))
+                      (-> (bt/send-event ctx event arg))))
         send-events (fn send-events [ctx & events]
                       (reduce #(apply send-event %1 %2)
                               ctx (map #(if (seqable? %) % [%]) events)))]

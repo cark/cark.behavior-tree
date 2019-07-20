@@ -34,3 +34,11 @@ nodes like :bind"
   "Returns all the bindings"
   [dynamic-extent]
   (::bindings dynamic-extent))
+
+(defn with-binding
+  "Executes func in a context where name is bound to value"
+  [dynamic-extent name value func]
+  (let [saved (get-bindings dynamic-extent)]
+    (-> (set-var dynamic-extent name value)
+        func
+        (set-bindings saved))))

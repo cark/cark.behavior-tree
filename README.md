@@ -43,7 +43,6 @@ This is a little overview, the nodes are described in more details in the [node 
 These node have no children.
 - :update : updates the tree context, using the func parameter.
 - :predicate : succeeds or fail according to the result of it's func function parameter.
-- :consume-event : consumes an event, possibly updating the blackboard with the event's argument
 - :send-event : Sends an event to the library user, with an optional argument.
 - :timer : Succeeds when the time provided by its duration parameter has elapsed, keeps in the running state otherwise.
 - :timer-init : Usefull in setting the start time of named timers.

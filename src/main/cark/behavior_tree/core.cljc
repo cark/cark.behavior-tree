@@ -13,11 +13,6 @@
 
 (rn/register)
 
-(defn- check-no-in-events-left [ctx]
-  (if (-> ctx event/get-events-in seq)
-    (throw (ex-info "Some events were not consumed." {:events (-> ctx event/get-events-in)}))
-    ctx))
-
 (defn tick
   "Ticks the tree, going through all running and fresh nodes in a depth first manner. The optional 
 time parameter specifies at which time (in milliseconds) the tick is supposed to be occuring. This time parameter is usefull for testing."
@@ -30,7 +25,7 @@ time parameter specifies at which time (in milliseconds) the tick is supposed to
          event/clear-events-out
          (db/set-time time)
          (ctx/tick id)
-         check-no-in-events-left))))
+         event/clear-event-in))))
 
 (defn tick+
   "This function is for testing purpose. It ticks the tree 'duration' milliseconds after it was last ticked."
@@ -142,12 +137,13 @@ with the event name as its first element, and the event argument as its second e
   (event/get-events-out ctx))
 
 (defn send-event
-  "Sends an event to the tree, that can later be consumed by a :consume-event or :on-event node. An optional
-arg parameter can be sent along with it. "
+  "Sends an event to the tree, that can later be picked by an :on-event node. An optional
+arg parameter can be sent along with it. The tree is immediately ticked"
   ([ctx name]
    (send-event ctx name nil))
   ([ctx name arg]
-   (event/add-event-in ctx name arg)))
+   (-> (event/set-event-in ctx name arg)
+       tick)))
 
 (defn extract-db
   "Extracts the database of this tree. It contains all the book-keeping transient data for the tree, as well as it blackboard.

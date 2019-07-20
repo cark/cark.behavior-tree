@@ -1,12 +1,15 @@
 (ns cark.behavior-tree.event
-  "The event maps keep the events coming in from the outside world and going out to it.
-We made the choice of raising errors if some incoming events are left unconsumed."
+  "The event maps keep the events coming in from the outside world and going out to it."
   (:refer-clojure :exclude [keys]))
 
-(def keys #{::events-out ::events-in})
+(defn log [value]
+  (tap> value)
+  value)
+
+(def keys #{::events-out ::event-in})
 
 (defn make []
-  {::events-in []
+  {::event-in nil
    ::events-out []})
 
 ;; out
@@ -33,38 +36,31 @@ We made the choice of raising errors if some incoming events are left unconsumed
 
 ;; in
 
-(defn update-events-in
-  "Updates the inbound events with the provided function"
-  [events func]
-  (update events ::events-in func))
-
-(defn get-events-in
-  "Returns all the inbound events"
+(defn get-event-in
+  "Returns the inbound event"
   [events]
-  (::events-in events))
+  (::event-in events))
 
-(defn add-event-in
-  "Adds an inbound event"
+(defn set-event-in
+  "Sets the inbound event"
   [events event-name event-arg]
-  (update-events-in events #(conj % [event-name event-arg])))
+  (assoc events ::event-in [event-name event-arg]))
 
-(defn clear-events-in
-  "Clears the inbound event queue of any event."
+(defn clear-event-in
+  "Clears the inbound event."
   [events]
-  (update-events-in events (constantly [])))
+  (assoc events ::event-in nil))
 
-(defn pop-event-in
-  "Returns a pair with first the matching event and next the updated events map.
-The pick-event? function allows for additional filtering. It will be passed the current
-event being considered, and should return true when that event should be picked, false otherwise."
+(defn pick-event
+  "Returns the event-in if it exists, and the name matches. The optional pick-event? function takes the event arg and returns
+true if the event should be picked."
   ([events event-name]
-   (pop-event-in events event-name (constantly true)))
-  ([events event-name pick-event?]   
-   (loop [[current & rest-events] (seq (get-events-in events))
-          acc []]
-     (if-let [name (first current)]
-       (if (and (= name event-name)
-                (pick-event? (second current)))
-         [current (assoc events ::events-in (into acc rest-events))]
-         (recur rest-events (conj acc current)))
-       [nil (assoc events ::events-in acc)]))))
+   (pick-event events event-name (constantly true)))
+  ([events event-name pick-event?]
+   (let [[name arg :as event] (get-event-in events)]
+     (if (and (= name event-name)
+              (pick-event? arg))
+       event
+       nil))))
+
+

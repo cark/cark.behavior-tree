@@ -126,12 +126,11 @@
     (is (= :running (-> ctx bt/get-status)))
     (is (= #{} (-> ctx (bt/bb-get-in [:approvals]))))
     (is (= :success (-> ctx (bt/send-event :approval-received :legal) bt/tick bt/get-status)))
-    (is (= #{:legal} (-> ctx (bt/send-event :approval-received :legal) bt/tick (bt/bb-get-in [:approvals]))))
-    (is-thrown? #(-> ctx (bt/send-event :approval-received :production) bt/tick bt/get-status))))
+    (is (= #{:legal} (-> ctx (bt/send-event :approval-received :legal) bt/tick (bt/bb-get-in [:approvals]))))))
 
 ;; once we receive an approval, we should stop sending mail reminders
 
-(def monitor-department-mails [:parallel {:policy :select}
+(def monitor-department-mails [:parallel {:policy :select :id :monitor-department-mails}
                                receive-approval
                                send-mails])
 
@@ -190,14 +189,15 @@
 
 ;; check all departments in a loop, until no more stakeholder needs approval, adding new stakeholders as needed
 
-(def monitor-all-departments [:parallel {:policy :select}
+(def monitor-all-departments [:parallel {:policy :select :id :monitor-all-departments}
                               add-stakeholders
                               [:until-success
                                [:sequence
-                                (into [:parallel {:policy :sequence :rerun-children true}]
-                                      (map (fn [department]
-                                             [:bind {:let [:department department]} monitor-stakeholder-mails])
-                                           departments))
+                                [:parallel {:policy :sequence :id :departments-parallel :rerun-children true}
+                                 (into [:<>]
+                                       (map (fn [department]
+                                              [:bind {:let [:department department] :id department} monitor-stakeholder-mails])
+                                            departments))]
                                 [:predicate {:func #(= (count (set/difference (bt/bb-get-in % [:stakeholders])
                                                                               (bt/bb-get-in % [:approvals])))
                                                        0)}]]]])
@@ -206,15 +206,29 @@
   (let [ctx (-> monitor-all-departments bt/hiccup->context)]
     (is (= :running (-> ctx (bt/bb-set {:stakeholders #{:legal} :approvals #{}})
                         bt/tick bt/get-status)))
-    (is (= :success (-> ctx (bt/bb-set {:stakeholders #{:legal} :approvals #{}})
+    (is (= :success (-> ctx (bt/bb-set {:stakeholders #{:legal} :approvals #{}}) bt/tick
                         (bt/send-event :approval-received :legal) bt/tick bt/get-status)))
     (is (= :running (-> ctx (bt/bb-set {:stakeholders #{:legal} :approvals #{}})
                         bt/tick (bt/send-event :add-stakeholder :production) bt/tick
                         (bt/send-event :approval-received :legal) bt/tick bt/get-status)))
+    (is (= :running (-> ctx (bt/bb-set {:stakeholders #{:legal} :approvals #{}})
+                        bt/tick (bt/send-event :add-stakeholder :production) bt/get-status)))
     (is (= :success (-> ctx (bt/bb-set {:stakeholders #{:legal} :approvals #{}})
                         bt/tick (bt/send-event :add-stakeholder :production) bt/tick
                         (bt/send-event :approval-received :legal) bt/tick
-                        (bt/send-event :approval-received :production) bt/tick bt/get-status))) ))
+                        (bt/send-event :approval-received :production) bt/tick bt/get-status)))
+    (is (= [[:send-mail [:mail :legal]]]
+           (-> ctx (bt/bb-set {:stakeholders #{:legal} :approvals #{}})
+               bt/tick bt/get-events)))
+    (is (= #{:legal :production}
+           (-> ctx (bt/bb-set {:stakeholders #{:legal} :approvals #{}})
+               bt/tick
+               (bt/send-event :add-stakeholder :production) (bt/bb-get-in [:stakeholders]))))
+    (is (= [[:send-mail [:mail :production]]]
+           (-> ctx (bt/bb-set {:stakeholders #{:legal} :approvals #{}})
+               bt/tick
+               ;;ctx/set-tracing
+               (bt/send-event :add-stakeholder :production) bt/get-events)))))
 
 ;; we need at least one stakeholder, or the whole email waiting will be skipped !
 
@@ -247,10 +261,9 @@
    [:update {:func #(bt/bb-update % assoc-in [:document part] (second (bt/get-var % :edit-arg)))}]])
 
 (deftest edit-document-part-test
-  (let [ctx (-> (edit-document-part :as-is) bt/hiccup->context)]
-    (-> (= :success (-> ctx (bt/send-event :edit-document [:as-is :some-data]) bt/tick bt/get-status)))
-    (-> (= :some-data (-> ctx (bt/send-event :edit-document [:as-is :some-data]) bt/tick (bt/bb-get-in [:document :as-is]))))
-    (is-thrown? #(-> ctx (bt/send-event :edit-document [:wrong-part :some-data]) bt/tick bt/get-status))))
+  (let [ctx (-> (edit-document-part :as-is) bt/hiccup->context bt/tick)]
+    (is (= :success (-> ctx (bt/send-event :edit-document [:as-is :some-data]) bt/get-status)))
+    (is (= :some-data (-> ctx (bt/send-event :edit-document [:as-is :some-data]) (bt/bb-get-in [:document :as-is]))))))
 
 ;; there are several parts to a document
 
@@ -259,7 +272,7 @@
 
 (deftest edit-document-parts-test
   (let [ctx (-> edit-document-parts bt/hiccup->context)]
-    (is (= {:as-is :blah} (-> ctx (bt/send-event :edit-document [:as-is :blah]) bt/tick (bt/bb-get-in [:document]))))
+    (is (= {:as-is :blah} (-> ctx bt/tick (bt/send-event :edit-document [:as-is :blah]) bt/tick (bt/bb-get-in [:document]))))
     (is (= {:as-is :foo} (-> ctx
                              (bt/send-event :edit-document [:as-is :blah]) bt/tick
                              (bt/send-event :edit-document [:as-is :foo]) bt/tick
@@ -268,6 +281,7 @@
             :to-be :bar
             :regulatory-impact :bam}
            (-> ctx
+               bt/tick
                (bt/send-event :edit-document [:as-is :foo]) bt/tick
                (bt/send-event :edit-document [:to-be :bar]) bt/tick
                (bt/send-event :edit-document [:regulatory-impact :bam]) bt/tick
@@ -297,32 +311,32 @@
                             [:failure-leaf]]]]]])
 
 (deftest sealable-document-test
-  (let [ctx (-> sealable-document bt/hiccup->context)]
+  (let [ctx (-> sealable-document bt/hiccup->context bt/tick)]
     (is (= :running (-> ctx
-                        (bt/send-event :edit-document [:regulatory-impact :bam]) bt/tick
+                        (bt/send-event :edit-document [:regulatory-impact :bam])
                         bt/get-status)))
     (is (= [[:cannot-seal :incomplete-document]]
            (-> ctx
-               (bt/send-event :edit-document [:regulatory-impact :bam]) bt/tick
-               (bt/send-event :seal-document) bt/tick
+               (bt/send-event :edit-document [:regulatory-impact :bam]) 
+               (bt/send-event :seal-document) 
                bt/get-events)))
     (is (= :success
            (-> ctx
-               (bt/send-event :edit-document [:regulatory-impact :bam]) bt/tick
-               (bt/send-event :seal-document) bt/tick
-               (bt/send-event :edit-document [:as-is :foo]) bt/tick
-               (bt/send-event :edit-document [:to-be :bar]) bt/tick
-               (bt/send-event :seal-document) bt/tick
+               (bt/send-event :edit-document [:regulatory-impact :bam]) 
+               (bt/send-event :seal-document) 
+               (bt/send-event :edit-document [:as-is :foo]) 
+               (bt/send-event :edit-document [:to-be :bar]) 
+               (bt/send-event :seal-document)
                bt/get-status)))
     (is (= {:regulatory-impact :bam
             :as-is :foo
             :to-be :bar}
            (-> ctx
-               (bt/send-event :edit-document [:regulatory-impact :bam]) bt/tick
-               (bt/send-event :seal-document) bt/tick
-               (bt/send-event :edit-document [:as-is :foo]) bt/tick
-               (bt/send-event :edit-document [:to-be :bar]) bt/tick
-               (bt/send-event :seal-document) bt/tick
+               (bt/send-event :edit-document [:regulatory-impact :bam]) 
+               (bt/send-event :seal-document) 
+               (bt/send-event :edit-document [:as-is :foo])
+               (bt/send-event :edit-document [:to-be :bar])
+               (bt/send-event :seal-documen)
                (bt/bb-get-in [:document]))))))
 
 ;; we now model the committee interaction
@@ -341,14 +355,14 @@
                     [:failure-leaf]]]]]])
 
 (deftest comittee-test
-  (let [ctx (bt/hiccup->context committee)]
-    (is (= [[:go-to-committee nil]] (-> ctx bt/tick bt/get-events)))
+  (let [ctx (-> committee bt/hiccup->context bt/tick)]
+    (is (= [[:go-to-committee nil]] (-> ctx bt/get-events)))
     (is (= :success (-> ctx (bt/send-event :committee-result :accept) bt/tick bt/get-status)))
-    (is (= [[:done :accept]] (-> ctx bt/tick (bt/send-event :committee-result :accept) bt/tick bt/get-events)))
+    (is (= [[:done :accept]] (-> ctx (bt/send-event :committee-result :accept) bt/get-events)))
     (is (= :success (-> ctx (bt/send-event :committee-result :reject) bt/tick bt/get-status)))
-    (is (= [[:done :reject]] (-> ctx bt/tick (bt/send-event :committee-result :reject) bt/tick bt/get-events)))
+    (is (= [[:done :reject]] (-> ctx (bt/send-event :committee-result :reject) bt/get-events)))
     (is (= :failure (-> ctx (bt/send-event :committee-result :on-hold) bt/tick bt/get-status)))
-    (is (= [[:continue :on-hold]] (-> ctx bt/tick (bt/send-event :committee-result :on-hold) bt/tick bt/get-events)))))
+    (is (= [[:continue :on-hold]] (-> ctx (bt/send-event :committee-result :on-hold) bt/get-events)))))
 
 ;; we amend the document and notify all stakeholders when committee responds with on-hold
 
@@ -373,19 +387,20 @@
   (let [ctx (-> (bt/hiccup->context change-control) bt/tick)]
     (is (= [[:please-edit-document nil]] (-> ctx bt/get-events)))
     (let [ctx (-> ctx
-                  (bt/send-event :edit-document [:as-is :it-s-fiiine]) bt/tick
-                  (bt/send-event :edit-document [:to-be :paradise]) bt/tick
-                  (bt/send-event :edit-document [:regulatory-impact :klabango!]) bt/tick
-                  (bt/send-event :seal-document) bt/tick)]
+                  (bt/send-event :edit-document [:as-is :it-s-fiiine])
+                  (bt/send-event :edit-document [:to-be :paradise])
+                  (bt/send-event :edit-document [:regulatory-impact :klabango!]) 
+                  (bt/send-event :seal-document))]
       (is (= {:as-is :it-s-fiiine
               :to-be :paradise
               :regulatory-impact :klabango!} (-> ctx (bt/bb-get-in [:document]))))
       (is (= [[:please-add-stakeholders nil]] (-> ctx bt/get-events)))
-      (is (= [[:send-mail [:mail :legal]]] (-> ctx (bt/send-event :add-stakeholder :legal) bt/tick bt/get-events)))
-      (is (= [[:send-mail [:mail :production]]] (-> ctx
-                                                    (bt/send-event :add-stakeholder :legal) bt/tick
-                                                    (bt/send-event :add-stakeholder :production) bt/tick
-                                                    bt/get-events)))
+      (is (= [[:send-mail [:mail :legal]]] (-> ctx (bt/send-event :add-stakeholder :legal) bt/get-events)))
+      (is (= [[:send-mail [:mail :production]]]
+             (-> ctx
+                 (bt/send-event :add-stakeholder :legal) 
+                 (bt/send-event :add-stakeholder :production)
+                 bt/get-events)))
       (is (= #{[:send-mail [:reminder :production]]
                [:send-mail [:reminder :legal]]}
              (-> ctx
@@ -394,22 +409,22 @@
                  (bt/tick+ week)
                  bt/get-events set)))
       (let [ctx (-> ctx
-                    (bt/send-event :add-stakeholder :legal) bt/tick
-                    (bt/send-event :add-stakeholder :production) bt/tick
-                    (bt/send-event :approval-received :legal) bt/tick
-                    (bt/send-event :approval-received :production) bt/tick)]
+                    (bt/send-event :add-stakeholder :legal)
+                    (bt/send-event :add-stakeholder :production)
+                    (bt/send-event :approval-received :legal)
+                    (bt/send-event :approval-received :production))]
         (is (= [[:go-to-committee nil]] (-> ctx bt/get-events)))
-        (is (= [[:done :accept]] (-> ctx (bt/send-event :committee-result :accept) bt/tick bt/get-events)))
+        (is (= [[:done :accept]] (-> ctx (bt/send-event :committee-result :accept) bt/get-events)))
         (is (= :success (-> ctx (bt/send-event :committee-result :accept) bt/tick bt/get-status)))
-        (is (= [[:done :reject]] (-> ctx (bt/send-event :committee-result :reject) bt/tick bt/get-events)))
+        (is (= [[:done :reject]] (-> ctx (bt/send-event :committee-result :reject) bt/get-events)))
         (is (= :success (-> ctx (bt/send-event :committee-result :reject) bt/tick bt/get-status)))
         (is (= [[:continue :on-hold]
-                [:please-edit-document nil]] (-> ctx (bt/send-event :committee-result :on-hold) bt/tick bt/get-events)))
+                [:please-edit-document nil]] (-> ctx (bt/send-event :committee-result :on-hold) bt/get-events)))
         (is (= :running (-> ctx (bt/send-event :committee-result :running) bt/tick bt/get-status)))
         (let [ctx (-> ctx (bt/send-event :committee-result :on-hold) bt/tick)]
           (is (= #{[:send-mail [:mail :production]]
                    [:send-mail [:mail :legal]]}
-                 (-> ctx (bt/send-event :seal-document) bt/tick bt/get-events set))))))))
+                 (-> ctx (bt/send-event :seal-document) bt/get-events set))))))))
 
 
 ;; now we're done, we can extract the definitions to their own file, keeping these tests around.

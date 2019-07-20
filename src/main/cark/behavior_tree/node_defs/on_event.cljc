@@ -1,11 +1,9 @@
 (ns cark.behavior-tree.node-defs.on-event
-  "The :on-event node acts in the same way as the :consume-event node, but it binds
-the event argument to a var and execute its child.
+  "Once the :on-event node becomes :running, it will be able to pick an incoming event. When it does, it will execute its child, succeeding or failing according to the child's result.
 
 Parameters:
-- :event : A keyword, or keyword returning context function. The name of the event to be consumed.
-- :pick? : A context function with two parameters. first the tree context, then the event argument being considered. This acts as an additional filter when considering incoming events to be consumed. The event will be consumed if this function returns a truthy value.
-- :wait? : A boolean, or boolean returning context function. When true the node will stay :running until the event is consumed.
+- :event : A keyword, or keyword returning context function. The name of the event to pick.
+- :pick? : A context function with two parameters. first the tree context, then the event argument being considered. This acts as an additional filter when considering incoming events to be picked. The event will be picked if this function returns a truthy value.
 - :bind-arg : the keyword name of the var to which the event argument will be bound."
   (:require [cark.behavior-tree.context :as ctx]
             [cark.behavior-tree.db :as db]
@@ -24,8 +22,6 @@ Parameters:
                      :function fn?))
 (s/def ::bind-arg keyword?)
 (s/def ::pick? fn?)
-(s/def ::wait? (s/or :boolean boolean?
-                     :function fn?))
 
 (defn compile-node [tree id tag params [child-id]]
   (let [[type value] (:event params)
@@ -40,31 +36,17 @@ Parameters:
                            (fn [event-arg]
                              (func ctx event-arg)))
                          (fn [ctx]
-                           (constantly true)))
-        
-        [type value] (:wait? params)
-        wait? (case type
-                :boolean (constantly value)
-                :function value
-                nil (constantly false))]
+                           (constantly true)))]
     [(fn on-event-tick [ctx arg]
        (case (db/get-node-status ctx id)
-         :fresh (recur (-> (db/set-node-status ctx id :running)
-                           (db/set-node-data id [:consume nil]))
-                       arg)
+         :fresh (-> (db/set-node-status ctx id :running)
+                    (db/set-node-data id [:consume nil]))
          :running (let [[state arg] (db/get-node-data ctx id)]
                     (case state
-                      :consume (let [[event ctx] (event/pop-event-in ctx (get-event-name ctx) (get-pick?-func ctx))]
-                                 (if event
-                                   (recur (db/set-node-data ctx id [:run (second event)]) arg)
-                                   (if (wait? ctx)
-                                     ctx
-                                     (-> (db/set-node-status ctx id :failure)
-                                         (db/set-node-data id nil)))))
-                      :run (let [saved-bindings (de/get-bindings ctx)
-                                 ctx (-> (de/set-bindings ctx (assoc saved-bindings bind-arg arg))
-                                         (ctx/tick child-id)
-                                         (de/set-bindings saved-bindings))
+                      :consume (if-let [event (event/pick-event ctx (get-event-name ctx) (get-pick?-func ctx))]
+                                 (recur (db/set-node-data ctx id [:run (second event)]) arg)
+                                 ctx)
+                      :run (let [ctx (de/with-binding ctx bind-arg arg #(ctx/tick % child-id))
                                  child-status (db/get-node-status ctx child-id)]
                              (case child-status
                                (:success :failure) (-> (ctx/set-node-status ctx child-id :fresh)
@@ -77,5 +59,5 @@ Parameters:
   (type/register
    (bn/decorator
     {::type/tag :on-event
-     ::type/params-spec (s/keys :req-un [::event] :opt-un [::bind-arg ::pick? ::wait?])
+     ::type/params-spec (s/keys :req-un [::event] :opt-un [::bind-arg ::pick?])
      ::type/compile-func compile-node})))

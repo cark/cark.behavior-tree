@@ -10,7 +10,7 @@
             [cark.behavior-tree.node-defs.bind :as bind]
             [cark.behavior-tree.node-defs.parallel :as parallel]
             [cark.behavior-tree.node-defs.send-event :as send-event]
-            [cark.behavior-tree.node-defs.consume-event :as consume-event]
+            #_[cark.behavior-tree.node-defs.consume-event :as consume-event]
             [cark.behavior-tree.node-defs.on-event :as on-event]
             [cark.behavior-tree.node-defs.guard :as guard]
             [cark.behavior-tree.node-defs.guard-selector :as guard-selector]
@@ -37,7 +37,7 @@
   (bind/register)
   (parallel/register)
   (send-event/register)
-  (consume-event/register)
+  ;;(consume-event/register)
   (on-event/register)
   (guard/register)
   (guard-selector/register)

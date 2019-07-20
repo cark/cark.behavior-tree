@@ -20,23 +20,22 @@
        [:until-success
         [:on-event {:event :navigate :wait? true :bind-arg :nav-page}
          [:predicate {:func #(= (bt/get-var % :nav-page) (bt/get-var % :target-page))}]]]]
-      bt/hiccup->context))
+      bt/hiccup->context bt/tick))
 
 (deftest promotion-tracker-test
   (is (= :running (-> tracker
-                      (bt/send-event :navigate :shopping-cart) bt/tick
-                      (bt/send-event :navigate :shop) bt/tick
+                      (bt/send-event :navigate :shopping-cart) 
+                      (bt/send-event :navigate :shop)
                       bt/get-status)))
   (is (= :success (-> tracker
-                      (bt/send-event :navigate :shopping-cart) bt/tick
-                      (bt/send-event :navigate :shop) bt/tick
-                      (bt/send-event :navigate :shopping-cart) bt/tick
+                      (bt/send-event :navigate :shopping-cart)
+                      (bt/send-event :navigate :shop)
+                      (bt/send-event :navigate :shopping-cart)
                       bt/get-status)))
   (is (= :success (-> tracker
                       (bt/send-event :navigate :shopping-cart) 
                       (bt/send-event :navigate :shop) 
                       (bt/send-event :navigate :shopping-cart)
-                      bt/tick
                       bt/get-status)))
   (is (= :success (-> tracker
                       (bt/send-event :navigate :somewhere-else)
@@ -47,7 +46,6 @@
                       (bt/send-event :navigate :somewhere-else)
                       (bt/send-event :navigate :somewhere-else)
                       (bt/send-event :navigate :shopping-cart)
-                      bt/tick
                       bt/get-status))))
 
 

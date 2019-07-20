@@ -223,47 +223,13 @@
                            [:send-event {:event (constantly :baz)}]]
                           bt/hiccup->context bt/tick bt/tick bt/get-events))))
 
-
-(deftest consume-event-test
-  (-> [:consume-event {:event (constantly :bar)}] bt/hiccup->context bt/tick)
-  (is (= :failure (-> [:consume-event {:event (constantly :bar)}] bt/hiccup->context bt/tick bt/get-status)))
-  (is (= :success (-> [:consume-event {:event (constantly :bar)}] bt/hiccup->context
-                      (bt/send-event :bar) bt/tick bt/get-status)))
-  (is-thrown? #(-> [:consume-event {:event (constantly :bar)}] bt/hiccup->context
-                   (bt/send-event :foo) bt/tick bt/get-status))
-  (is-thrown? #(-> [:consume-event {:event (constantly :bar)
-                                    :pick? (fn [ctx arg] (= arg 1))}] bt/hiccup->context
-                   (bt/send-event :bar) bt/tick bt/get-status))
-  (is (= :success (-> [:consume-event {:event (constantly :bar)
-                                       :pick? (fn [ctx arg] (= arg 1))}] bt/hiccup->context
-                      (bt/send-event :bar 1) bt/tick bt/get-status)))
-  (is (= 1 (-> [:consume-event {:event (constantly :bar)
-                                :with-arg (fn [ctx arg] (bt/bb-set ctx arg))}] bt/hiccup->context
-               (bt/send-event :bar 1) bt/tick bt/bb-get)))
-  (is (= :running (-> [:consume-event {:event (constantly :foo)
-                                       :wait? (constantly true)}]
-                      bt/hiccup->context bt/tick bt/get-status)))
-  (is (= :success (-> [:consume-event {:event :foo
-                                       :wait? true}]
-                      bt/hiccup->context bt/tick (bt/send-event :foo) bt/tick bt/get-status))))
-
-(deftest on-event-no-wait-test
-  (is (= :failure (-> [:on-event {:event :foo :bind-arg :a}
+(deftest on-event-wait-test
+  (is (= :running (-> [:on-event {:event :foo :bind-arg :a}
                        [:success-leaf]] bt/hiccup->context bt/tick bt/get-status)))
   (is (= :success (-> [:on-event {:event :foo :bind-arg :a}
                        [:success-leaf]] bt/hiccup->context
-                      (bt/send-event :foo) bt/tick bt/get-status)))
+                      bt/tick (bt/send-event :foo) bt/get-status)))
   (is (= 1 (-> [:on-event {:event :foo :bind-arg :a}
-                [:update {:func (bt/bb-setter (bt/var-getter :a))}]] bt/hiccup->context
-               (bt/send-event :foo 1) bt/tick bt/bb-get))))
-
-(deftest on-event-wait-test
-  (is (= :running (-> [:on-event {:event :foo :bind-arg :a :wait? true}
-                       [:success-leaf]] bt/hiccup->context bt/tick bt/get-status)))
-  (is (= :success (-> [:on-event {:event :foo :bind-arg :a :wait? true}
-                       [:success-leaf]] bt/hiccup->context
-                      bt/tick (bt/send-event :foo) bt/tick bt/get-status)))
-  (is (= 1 (-> [:on-event {:event :foo :bind-arg :a :wait? true}
                 [:update {:func #(bt/bb-set % (bt/get-var % :a))}]] bt/hiccup->context
                bt/tick (bt/send-event :foo 1) bt/tick bt/bb-get))))
 
@@ -299,21 +265,21 @@
   (is (= :running (-> [:repeat [:tick-eater {:count (constantly 1)}]] bt/hiccup->context
                       bt/tick bt/tick bt/tick bt/get-status)))
   (is (= :running (-> [:repeat {:while bt/bb-get}
-                       [:consume-event {:event :bleh :wait? true}]]
+                       [:tick-eater {:count 5}]]
                       bt/hiccup->context (bt/bb-set true) bt/tick bt/get-status)))
   (is (= :success (-> [:repeat {:while bt/bb-get}
-                       [:consume-event {:event :bleh :wait? true}]]
+                       [:tick-eater {:count 5}]]
                       bt/hiccup->context (bt/bb-set false) bt/tick bt/get-status))))
 
 (deftest repeat-count-test
   (is (= :success (-> [:repeat {:count (constantly 5)} [:success-leaf]] bt/hiccup->context bt/tick bt/get-status)))
   (is (= :running (-> [:repeat {:while bt/bb-get
                                 :count 25}
-                       [:consume-event {:event :bleh :wait? true}]]
+                       [:tick-eater {:count 5}]]
                       bt/hiccup->context (bt/bb-set true) bt/tick bt/get-status)))
   (is (= :success (-> [:repeat {:while bt/bb-get
                                 :count 25}
-                       [:consume-event {:event :bleh :wait? true}]]
+                       [:tick-eater {:count 5}]]
                       bt/hiccup->context (bt/bb-set false) bt/tick bt/get-status))))
 
 
