@@ -155,4 +155,4 @@
             [:entered-a-a-after nil]]
            (-> ctx (bt/send-event :c) (bt/send-event :d) bt/get-events)))
     (is (= [[:entered-a-e nil]]
-           (-> ctx ctx/set-tracing (bt/send-event :e) bt/get-events)))))
+           (-> ctx (bt/send-event :e) bt/get-events)))))
