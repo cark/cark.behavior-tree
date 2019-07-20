@@ -17,7 +17,7 @@
        text)))
 
 (defn get-state [ctx]
-  (:sm (bt/bb-get ctx)))
+  (:state (:sm (bt/bb-get ctx))))
 
 (deftest simple-test
   (let [tree (-> (sm/make [:sm] :green
@@ -122,3 +122,37 @@
                         (bt/send-event :b)
                         (bt/send-event :c)
                         bt/get-status)))))
+
+(deftest hierachy-test
+  (let [b-machine (sm/make [:b] :b
+                    (sm/state :b
+                      (sm/enter-event [:send-event {:event :entered-b-b}])
+                      (sm/event :c (sm/transition :c)))
+                    (sm/state :c
+                      (sm/enter-event [:send-event {:event :entered-b-c}])
+                      (sm/event :d (sm/transition :d)))
+                    (sm/end-state :d
+                      [:send-event {:event :entered-b-d}]))
+        ctx (-> (sm/make [:a] :a
+                  (sm/state :a
+                    (sm/enter-event
+                     [:sequence
+                      [:send-event {:event :entered-a-a}]
+                      b-machine
+                      [:send-event {:event :entered-a-a-after}]])
+                    (sm/event :e
+                      (sm/transition :e)))
+                  (sm/state :e
+                    (sm/enter-event [:send-event {:event :entered-a-e}])))
+                bt/hiccup->context bt/tick)]
+    (is (= :running (-> ctx bt/get-status)))
+    (is (= [[:entered-a-a nil]
+            [:entered-b-b nil]]
+           (-> ctx bt/get-events)))
+    (is (= [[:entered-b-c nil]]
+           (-> ctx (bt/send-event :c) bt/get-events)))
+    (is (= [[:entered-b-d nil]
+            [:entered-a-a-after nil]]
+           (-> ctx (bt/send-event :c) (bt/send-event :d) bt/get-events)))
+    (is (= [[:entered-a-e nil]]
+           (-> ctx ctx/set-tracing (bt/send-event :e) bt/get-events)))))

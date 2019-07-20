@@ -64,7 +64,7 @@
       bt/hiccup->context (bt/tick 0)))
 
 (deftest traffic-light-3-test
-  (let [get-state (bt/bb-getter-in [:sm])]
+  (let [get-state (bt/bb-getter-in [:sm :state])]
     (is (-> (traffic-light-3)))
     (is (= :green (-> (traffic-light-3) get-state)))
     (is (= :yellow (-> (traffic-light-3) (bt/tick+ 50000) get-state)))

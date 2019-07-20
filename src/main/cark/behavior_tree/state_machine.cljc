@@ -16,7 +16,7 @@ behavior tree."
   (into (bt/get-var node ::path) rest))
 
 (defn- in-state? [name]
-  [:predicate {:func #(= (bt/bb-get-in % (get-path %)) name)}])
+  [:predicate {:func #(= (bt/bb-get-in % (conj (get-path %) :state)) name)}])
 
 (defn make
   "Creates the hiccup for a state machine. Its data will be stored in the black board at 
@@ -25,17 +25,19 @@ the specified path. Upon entering this node, the initial state will directly be 
   [path initial-state & states]
   [:bind {:let [::path (vec path)]}
    [:sequence
-    [:update {:func #(bt/bb-update % assoc-in (get-path %) initial-state)}]
+    [:update {:func #(bt/bb-update % assoc-in (get-path %) {:state initial-state})}]
     [:until-failure (into [:select] states)]]])
 
 (defn end-state
   "Creates an end state. While this node returns a failure, the state machine will succeed."
   {:style/indent :defn}
   ([name]
-   [:sequence {:id name} (in-state? name)
+   [:sequence {:id name}
+    (in-state? name)
     [:failure-leaf]])
   ([name node]
-   [:sequence {:id name} (in-state? name)
+   [:sequence {:id name}
+    (in-state? name)
     node [:failure-leaf]]))
 
 (defn event
@@ -67,12 +69,17 @@ This also trigger when transitioning from the same state, but not when another e
                          (throw (ex-info "Only one enter-event allowed per state" {}))                         
                          (nth (first enter-event) 2))
                        nil)]
-     [:sequence {:id [:state name]}
-      (in-state? name)
-      (when enter-event
-        enter-event)
-      (when event
-        events)])))
+     [:guard (in-state? name)
+      [:parallel {:policy :select :id [:state name]}
+       (when enter-event
+         [:always-failure
+          [:select
+           [:predicate {:func #(let [{:keys [state last-state]} (bt/bb-get-in % (get-path %))]
+                                 (= state last-state))}] 
+           [:sequence enter-event
+            [:update {:func #(bt/bb-update % assoc-in (get-path % :last-state) name)}]]]])
+       (when event
+         events)]])))
 
 (defn event-arg
   "This context function returns the argument of its closest parent event"
@@ -82,8 +89,8 @@ This also trigger when transitioning from the same state, but not when another e
 (defn transition
   "Transitions to some state, another one or the same."
   [new-state]
-  [:sequence
-   [:update {:func #(bt/bb-update % assoc-in (get-path %) new-state)}]
+  [:sequence {:id :set-transition}
+   [:update {:func #(bt/bb-update-in % (get-path %) assoc :state new-state :last-state nil)}]
    [:failure-leaf]])
 
 
